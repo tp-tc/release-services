@@ -1,0 +1,126 @@
+{
+    "metadata": {
+        "generated": "2014-06-16T19:20:03.578484Z"
+    },
+    "w64-ix-slave160": {
+        "elapsed_on_job": "1:28:59",
+        "elapsed_since_job": "14:31:16",
+        "elapsed_since_job_secs": 52276,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/w64-ix-slave160\">None</a>",
+        "notes": "(rev2)",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-15 20:19:48"
+    },
+    "w64-ix-slave161": {
+        "elapsed_on_job": "0:56:25",
+        "elapsed_since_job": "13:57:49",
+        "elapsed_since_job_secs": 50269,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/w64-ix-slave161\">None</a>",
+        "notes": "(rev2)",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-15 21:25:49"
+    },
+    "w64-ix-slave162": {
+        "elapsed_on_job": "0:54:51",
+        "elapsed_since_job": "12:55:35",
+        "elapsed_since_job_secs": 46535,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/w64-ix-slave162\">None</a>",
+        "notes": "(rev2)",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-15 22:29:37"
+    },
+    "w64-ix-slave163": {
+        "elapsed_on_job": "0:01:59",
+        "elapsed_since_job": "3 days, 2:39:27",
+        "elapsed_since_job_secs": 268767,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/w64-ix-slave163\">None</a>",
+        "notes": "(rev2)",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-13 09:38:37"
+    },
+    "w64-ix-slave164": {
+        "elapsed_on_job": "1:02:18",
+        "elapsed_since_job": "2 days, 23:00:58",
+        "elapsed_since_job_secs": 255658,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/w64-ix-slave164\">None</a>",
+        "notes": "(rev2)",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-13 12:16:47"
+    },
+    "w64-ix-slave165": {
+        "elapsed_on_job": "1:29:07",
+        "elapsed_since_job": "15:11:07",
+        "elapsed_since_job_secs": 54667,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/w64-ix-slave165\">None</a>",
+        "notes": "(rev2)",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-15 19:39:49"
+    },
+    "w64-ix-slave166": {
+        "elapsed_on_job": "0:47:11",
+        "elapsed_since_job": "2 days, 23:53:36",
+        "elapsed_since_job_secs": 258816,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/w64-ix-slave166\">None</a>",
+        "notes": "(rev2)",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-13 11:39:16"
+    },
+    "w64-ix-slave167": {
+        "elapsed_on_job": "1:21:34",
+        "elapsed_since_job": "2 days, 23:48:45",
+        "elapsed_since_job_secs": 258525,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/w64-ix-slave167\">None</a>",
+        "notes": "(rev2)",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-13 11:09:44"
+    },
+    "w64-ix-slave168": {
+        "elapsed_on_job": "0:59:31",
+        "elapsed_since_job": "16:05:43",
+        "elapsed_since_job_secs": 57943,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/w64-ix-slave168\">None</a>",
+        "notes": "(rev2)",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-15 19:14:49"
+    },
+    "w64-ix-slave169": {
+        "elapsed_on_job": "1:30:00",
+        "elapsed_since_job": "15:35:14",
+        "elapsed_since_job_secs": 56114,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/w64-ix-slave169\">None</a>",
+        "notes": "(rev2)",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-15 19:14:49"
+    },
+    "w64-ix-slave170": {
+        "elapsed_on_job": "0:15:01",
+        "elapsed_since_job": "2 days, 1:36:46",
+        "elapsed_since_job_secs": 178606,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/w64-ix-slave170\">None</a>",
+        "notes": "(rev2)",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-14 10:28:16"
+    }
+}

@@ -1,0 +1,82 @@
+{
+    "bld-centos6-hp-030": {
+        "elapsed_on_job": "1:01:18",
+        "elapsed_since_job": "20:25:48",
+        "elapsed_since_job_secs": 73548,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/bld-centos6-hp-030\">None</a>",
+        "notes": "",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-08 17:13:06"
+    },
+    "bld-centos6-hp-031": {
+        "elapsed_on_job": "3:22:35",
+        "elapsed_since_job": "18:04:31",
+        "elapsed_since_job_secs": 65071,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/bld-centos6-hp-031\">None</a>",
+        "notes": "",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-08 17:13:06"
+    },
+    "bld-centos6-hp-032": {
+        "elapsed_on_job": "2:55:27",
+        "elapsed_since_job": "17:07:39",
+        "elapsed_since_job_secs": 61659,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/bld-centos6-hp-032\">None</a>",
+        "notes": "",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-08 18:37:06"
+    },
+    "bld-centos6-hp-035": {
+        "elapsed_on_job": "0:02:00",
+        "elapsed_since_job": "19:32:29",
+        "elapsed_since_job_secs": 70349,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/bld-centos6-hp-035\">None</a>",
+        "notes": "",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-08 19:05:43"
+    },
+    "bld-centos6-hp-040": {
+        "elapsed_on_job": "0:15:03",
+        "elapsed_since_job": "19:09:26",
+        "elapsed_since_job_secs": 68966,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/bld-centos6-hp-040\">None</a>",
+        "notes": "",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-08 19:15:43"
+    },
+    "bld-centos6-hp-041": {
+        "elapsed_on_job": "0:48:10",
+        "elapsed_since_job": "19:14:56",
+        "elapsed_since_job_secs": 69296,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/bld-centos6-hp-041\">None</a>",
+        "notes": "",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-08 18:37:06"
+    },
+    "bld-centos6-hp-042": {
+        "elapsed_on_job": "0:02:25",
+        "elapsed_since_job": "19:32:41",
+        "elapsed_since_job_secs": 70361,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/bld-centos6-hp-042\">None</a>",
+        "notes": "",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-08 19:05:06"
+    },
+    "metadata": {
+        "generated": "2014-06-09T21:40:12.511909Z"
+    }
+}

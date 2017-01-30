@@ -1,0 +1,209 @@
+{
+    "build": {
+        "b-linux64-hp": {
+            "broken": 0,
+            "decommissioned": 14,
+            "disabled": 1,
+            "hung": 0,
+            "not_in_slavealloc": 0,
+            "pending_builds": 0,
+            "slow": 0,
+            "staging": 0,
+            "working": 0
+        },
+        "b-linux64-ix": {
+            "broken": 0,
+            "decommissioned": 11,
+            "disabled": 0,
+            "hung": 0,
+            "not_in_slavealloc": 0,
+            "pending_builds": 0,
+            "slow": 0,
+            "staging": 0,
+            "working": 0
+        },
+        "bld-linux64-ec2": {
+            "broken": 38,
+            "decommissioned": 0,
+            "disabled": 0,
+            "hung": 0,
+            "not_in_slavealloc": 60,
+            "pending_builds": 0,
+            "slow": 0,
+            "staging": 0,
+            "working": 0
+        },
+        "bld-linux64-spot": {
+            "broken": 306,
+            "decommissioned": 0,
+            "disabled": 0,
+            "hung": 0,
+            "not_in_slavealloc": 1,
+            "pending_builds": 0,
+            "slow": 0,
+            "staging": 0,
+            "working": 349
+        },
+        "bld-lion-r5": {
+            "broken": 0,
+            "decommissioned": 0,
+            "disabled": 3,
+            "hung": 0,
+            "not_in_slavealloc": 8,
+            "pending_builds": 0,
+            "slow": 0,
+            "staging": 1,
+            "working": 55
+        }
+    },
+    "metadata": {
+        "generated": "2015-01-27T06:49:31.046908Z"
+    },
+    "test": {       
+        "t-snow-r4": {
+            "broken": 0,
+            "decommissioned": 2,
+            "disabled": 2,
+            "hung": 0,
+            "not_in_slavealloc": 1,
+            "pending_builds": 0,
+            "slow": 0,
+            "staging": 1,
+            "working": 152
+        },
+        "t-w732-ix": {
+            "broken": 0,
+            "decommissioned": 0,
+            "disabled": 0,
+            "hung": 0,
+            "not_in_slavealloc": 0,
+            "pending_builds": 0,
+            "slow": 0,
+            "staging": 2,
+            "working": 159
+        },
+        "t-w864-ix": {
+            "broken": 1,
+            "decommissioned": 0,
+            "disabled": 3,
+            "hung": 0,
+            "not_in_slavealloc": 0,
+            "pending_builds": 0,
+            "slow": 0,
+            "staging": 0,
+            "working": 166
+        },
+        "t-xp32-ix": {
+            "broken": 2,
+            "decommissioned": 0,
+            "disabled": 1,
+            "hung": 0,
+            "not_in_slavealloc": 0,
+            "pending_builds": 0,
+            "slow": 0,
+            "staging": 0,
+            "working": 158
+        },
+        "talos-linux64-ix": {
+            "broken": 29,
+            "decommissioned": 0,
+            "disabled": 4,
+            "hung": 0,
+            "not_in_slavealloc": 0,
+            "pending_builds": 0,
+            "slow": 0,
+            "staging": 0,
+            "working": 86
+        },
+        "tst-emulator64-ec2": {
+            "broken": 0,
+            "decommissioned": 0,
+            "disabled": 2,
+            "hung": 0,
+            "not_in_slavealloc": 17,
+            "pending_builds": 0,
+            "slow": 0,
+            "staging": 0,
+            "working": 0
+        },
+        "tst-emulator64-spot": {
+            "broken": 54,
+            "decommissioned": 0,
+            "disabled": 0,
+            "hung": 0,
+            "not_in_slavealloc": 0,
+            "pending_builds": 0,
+            "slow": 0,
+            "staging": 0,
+            "working": 344
+        },
+        "tst-linux32-spot": {
+            "broken": 302,
+            "decommissioned": 0,
+            "disabled": 0,
+            "hung": 0,
+            "not_in_slavealloc": 0,
+            "pending_builds": 0,
+            "slow": 0,
+            "staging": 0,
+            "working": 597
+        },
+        "tst-linux64-spot": {
+            "broken": 7,
+            "decommissioned": 0,
+            "disabled": 0,
+            "hung": 0,
+            "not_in_slavealloc": 0,
+            "pending_builds": 0,
+            "slow": 0,
+            "staging": 0,
+            "working": 1292
+        }
+    },
+    "try": {
+        "b-linux64-hp": {
+            "broken": 0,
+            "decommissioned": 18,
+            "disabled": 1,
+            "hung": 0,
+            "not_in_slavealloc": 0,
+            "pending_builds": 0,
+            "slow": 0,
+            "staging": 0,
+            "working": 0
+        },
+        "b-linux64-ix": {
+            "broken": 0,
+            "decommissioned": 2,
+            "disabled": 0,
+            "hung": 0,
+            "not_in_slavealloc": 0,
+            "pending_builds": 0,
+            "slow": 0,
+            "staging": 0,
+            "working": 0
+        },
+        "bld-lion-r5": {
+            "broken": 0,
+            "decommissioned": 0,
+            "disabled": 1,
+            "hung": 0,
+            "not_in_slavealloc": 0,
+            "pending_builds": 0,
+            "slow": 0,
+            "staging": 0,
+            "working": 20
+        },
+        "try-linux64-spot": {
+            "broken": 204,
+            "decommissioned": 0,
+            "disabled": 0,
+            "hung": 0,
+            "not_in_slavealloc": 0,
+            "pending_builds": 0,
+            "slow": 0,
+            "staging": 0,
+            "working": 295
+        }
+    }
+}

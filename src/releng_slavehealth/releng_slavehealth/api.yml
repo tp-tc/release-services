@@ -1,0 +1,295 @@
+---
+swagger: "2.0"
+info:
+  version: "1.0.0"
+  title: "RelEng SlaveHealth"
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+
+
+   #all_slaves.json
+  /slaves:
+    get:
+      operationId: "releng_slavehealth.api.get_slaves"
+      responses:
+        200:
+          description: All Slaves
+          schema:
+            type: object
+            additionalProperties:
+              $ref: '#/definitions/Machines'
+                
+
+
+
+   # try-*.json
+  /slaves/try/{slave_type}:
+    get:
+      operationId: "releng_slavehealth.api.get_slaves_try"
+      parameters:
+        - name: slave_type
+          in: path
+          required: true
+          type: string 
+      responses:
+        200:
+          description: Slave Type Try
+          schema:
+#            $ref: '#/definitions/Metadata'
+            type: object
+            additionalProperties:
+              $ref: '#/definitions/Machines'
+         #   type: object
+         #   properties:
+         #     metadata:
+         #       type: object
+         #       properties:
+         #         generated :
+         #           type : string 
+
+
+
+
+   # build-*.json
+  /slaves/build/{slave_type}:
+    get:
+      operationId: "releng_slavehealth.api.get_slaves_build"
+      parameters:
+        - name: slave_type
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: Slave Type Build
+          schema:
+#            $ref: '#/definitions/Metadata'
+            type: object
+            additionalProperties:
+              $ref: '#/definitions/Machines'
+
+
+
+
+   # test-*.json
+  /slaves/test/{slave_type}:
+    get:
+      operationId: "releng_slavehealth.api.get_slaves_test"
+      parameters:
+        - name: slave_type
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: Slave Type Test
+          schema:
+#            $ref: '#/definitions/Metadata'
+            type: object
+            additionalProperties:
+              $ref: '#/definitions/Machines'
+
+
+
+   # master-*.json
+  /masters:
+    get:
+      operationId: "releng_slavehealth.api.get_masters"
+      responses:
+        200:
+          description: Master Type 
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+ 
+   
+   
+
+#      # slave.json
+#     /slave_special:
+#   #  /slaves/test/slave_type/{slavename}:  #added
+#       get:
+#         operationId: "releng_slavehealth.api.get_special_slave"
+#   #      parameters:  #added
+#   #        - name: slavename #added
+#   #          in: path     #added
+#   #          required: true  #added
+#   #          type: string    #added
+#         responses:
+#           200:
+#             description: Special Slave
+#             schema:
+#               type: object
+#               properties:
+#                 bitsid:
+#                   type: integer  
+#                 envid:
+#                   type: integer
+#                 speedid: 
+#                   type: integer
+#                 custom_tplid: 
+#                   type: [integer, "null"]   
+#                 enabled:
+#                   type: boolean
+#                 distroid:
+#                   type: integer
+#                 basedir:
+#                   type: string 
+#                 dcid: 
+#                   type: integer
+#   #              locked_masterid: null,
+#   #                type: 
+#                 purposeid: 
+#                   type: integer
+#   #              current_masterid: null
+#   #                type:
+#                 notes: 
+#                   type: string
+#                 poolid: 
+#                   type: integer
+#                 trustid: 
+#                   type: integer
+#                 slaveid:
+#                   type: integer
+#                 name: 
+#                   type: string
+
+
+
+
+   # slave_state_rollup.json
+  /slaves_state:
+    get:
+      operationId: "releng_slavehealth.api.get_slave_state"
+      responses:
+        200:
+          description: Slave State
+          schema:
+            type: object
+            required:
+              - build
+              - metadata
+              - test
+              - try            
+            properties:
+              build: 
+                type: object
+                additionalProperties:
+                  $ref: '#/definitions/Status'
+              test:
+                type: object
+                additionalProperties:
+                  $ref: '#/definitions/Status'
+              try:
+                type: object
+                additionalProperties:
+                  $ref: '#/definitions/Status'
+              metadata:
+                type: object
+                properties:
+                  generated :
+                    type: string 
+
+
+
+
+   # pendings.json
+  /pendings:
+    get:
+      operationId: "releng_slavehealth.api.get_pendings"
+      responses:
+        200:
+          description: Slave State
+          schema:
+            type: object
+            required: 
+              - pending
+            properties:
+              pending:
+                type: object
+                additionalProperties:
+                   type: object              
+                   additionalProperties:
+                     type: array
+                     items: 
+                       type : object
+                       properties:
+                         id:
+                           type: integer
+                         submitted_at :
+                           type: integer
+                         buildername :
+                           type: string 
+
+
+
+
+
+
+definitions:
+
+
+  Machines:
+    type: object
+    properties:
+      elapsed_on_job :
+        type: string
+      elapsed_since_job :
+        type: string
+      elapsed_since_job_secs :
+        type: integer
+      enabled :
+        type:  string
+      master :
+        type: string
+      notes :
+        type: string
+      row_class :
+        type: string
+      slave_class :
+        type: string
+      slave_state :
+        type: string
+      starttime :
+        type: string
+
+  Metadata:
+    type: object 
+    properties:
+      metadata :
+        type: object
+        properties:
+          generated :
+            type : string
+
+
+
+  Status:
+    type: object
+    properties:
+      broken:
+        type: integer
+      decommissioned:
+        type: integer
+      disabled:
+        type: integer
+      hung:
+        type: integer
+      not_in_slavealloc:
+        type: integer
+      pending_builds:
+        type: integer
+      slow:
+        type: integer
+      staging:
+        type: integer
+      working:
+        type: integer
+
+
+
+  

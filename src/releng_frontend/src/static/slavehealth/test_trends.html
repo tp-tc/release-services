@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Test Trends</title>
+  <link rel="stylesheet" media="screen,projection,tv" href="./css/responsive-bundle.352a81c95337.css" />
+  <link rel="stylesheet" href="./css/slave_health.css" type="text/css" media="print, projection, screen" />
+</head>
+<body>
+  <div id="topbar">
+    <div id="title" class="dropdown"><a href="./index.html">Slave Health</a></div>
+    <div class="dropdown separator"> &gt; </div>
+    <div id="trend" class="dropdown">Test Trends</div>
+    <div class="topbarright">
+      <div id="monthly" class="dropdown"><a href="./test_trends.html?period=month&month=YYYY-MM">Last Month</a></div>
+      <div class="dropdown separator"> &lt; </div>
+      <div id="weekly" class="dropdown"><a href="./test_trends.html?period=week">Last Week</a></div>
+      <div class="dropdown separator"> &lt; </div>
+      <div id="daily" class="dropdown"><a href="./test_trends.html?period=day&date=YYYY-MM-DD">Yesterday</a></div>
+    </div>
+  </div>
+  <div class="container">
+    <table id="trends">
+      <tr>
+        <td colspan="3"><div id="testTrend"></div></td>
+      </tr>
+      <tr>
+        <td><div id="tst-emulator64-spotTrend"></div></td>
+        <td><div id="tst-linux32-spotTrend"></div></td>
+        <td><div id="tst-linux64-spotTrend"></div></td>
+      </tr>
+      <tr>
+        <td><div id="talos-linux64-ixTrend"></div></td>
+      </tr>
+      <tr>
+        <td><div id="t-snow-r4Trend"></div></td>
+        <td><div id="t-yosemite-r7Trend"></div></td>
+      </tr>
+      <tr>
+        <td><div id="g-w732-spotTrend"></div></td>
+        <td><div id="t-w732-ixTrend"></div></td>
+        <td><div id="t-w732-spotTrend"></div></td>
+      </tr>
+      <tr>
+        <td><div id="t-w864-ixTrend"></div></td>
+        <td><div id="t-w1064-ixTrend"></div></td>
+        <td><div id="t-xp32-ixTrend"></div></td>
+      </tr>
+      <tr>
+      </tr>
+    </table>
+  </div>
+  <script type="text/javascript" src="./jquery.tablesorter/jquery-1.6.4.min.js"></script>
+  <script type="text/javascript" src="./jquery.tablesorter/jquery-encoder-0.1.0.js"></script>
+  <script src="./zingchart/html5_scripts/zingchart-html5-min.js"></script>
+  <script language="javaScript" type="text/javascript" src="./js/slave_health.js"></script>
+  <script language="javaScript" type="text/javascript" src="./js/trends.js"></script>
+  <script>
+  var period_to_process = getParameterByName('period');
+  if (period_to_process == "month") {
+    generate_monthly_charts(test_slavetypes,'test');
+  } else if (period_to_process == "week") {
+    generate_weekly_charts(test_slavetypes,'test');
+  } else {
+    generate_daily_charts(test_slavetypes,'test');
+  }
+  $(document).ready(function(){
+    var d = get_yesterday();
+    var m = get_last_month();
+    var p = window.location.pathname;
+    var filename = p.substr(p.lastIndexOf("/") + 1);
+    $('div#monthly').html('<a href="./' + filename + '?period=month&month=' + m + '">Last Month</a>');
+    $('div#daily').html('<a href="./' + filename + '?period=day&date=' + d + '">Yesterday</a>');
+  });
+  </script>
+</body>
+</html>

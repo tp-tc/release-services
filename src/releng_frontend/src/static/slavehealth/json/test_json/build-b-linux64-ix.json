@@ -1,0 +1,126 @@
+{
+    "b-linux64-ix-0001": {
+        "elapsed_on_job": "1:45:36",
+        "elapsed_since_job": "0:42:20",
+        "elapsed_since_job_secs": 2540,
+        "enabled": "Yes",
+        "master": "<a href=\"http://buildbot-master82.srv.releng.scl3.mozilla.com:8001/buildslaves/b-linux64-ix-0001\">bm82-build1</a>",
+        "notes": "",
+        "row_class": "working",
+        "slave_state": "working",
+        "starttime": "2014-12-24 11:12:07"
+    },
+    "b-linux64-ix-0002": {
+        "elapsed_on_job": "0:53:11",
+        "elapsed_since_job": "1:31:57",
+        "elapsed_since_job_secs": 5517,
+        "enabled": "Yes",
+        "master": "<a href=\"http://buildbot-master85.srv.releng.scl3.mozilla.com:8001/buildslaves/b-linux64-ix-0002\">bm85-build1</a>",
+        "notes": "",
+        "row_class": "working",
+        "slave_state": "working",
+        "starttime": "2014-12-24 11:14:55"
+    },
+    "b-linux64-ix-0003": {
+        "elapsed_on_job": "0:15:53",
+        "elapsed_since_job": "0:13:15",
+        "elapsed_since_job_secs": 795,
+        "enabled": "Yes",
+        "master": "<a href=\"http://buildbot-master85.srv.releng.scl3.mozilla.com:8001/buildslaves/b-linux64-ix-0003\">bm85-build1</a>",
+        "notes": "",
+        "row_class": "working",
+        "slave_state": "working",
+        "starttime": "2014-12-24 13:10:55"
+    },
+    "b-linux64-ix-0004": {
+        "elapsed_on_job": "0:23:10",
+        "elapsed_since_job": "0:55:02",
+        "elapsed_since_job_secs": 3302,
+        "enabled": "Yes",
+        "master": "<a href=\"http://buildbot-master86.srv.releng.scl3.mozilla.com:8001/buildslaves/b-linux64-ix-0004\">bm86-build1</a>",
+        "notes": "",
+        "row_class": "working",
+        "slave_state": "working",
+        "starttime": "2014-12-24 12:21:51"
+    },
+    "b-linux64-ix-0005": {
+        "elapsed_on_job": "1:41:50",
+        "elapsed_since_job": "1:28:06",
+        "elapsed_since_job_secs": 5286,
+        "enabled": "Yes",
+        "master": "<a href=\"http://buildbot-master82.srv.releng.scl3.mozilla.com:8001/buildslaves/b-linux64-ix-0005\">bm82-build1</a>",
+        "notes": "",
+        "row_class": "working",
+        "slave_state": "working",
+        "starttime": "2014-12-24 10:30:07"
+    },
+    "b-linux64-ix-0006": {
+        "elapsed_on_job": "0:06:47",
+        "elapsed_since_job": "0:11:25",
+        "elapsed_since_job_secs": 685,
+        "enabled": "Yes",
+        "master": "<a href=\"http://buildbot-master86.srv.releng.scl3.mozilla.com:8001/buildslaves/b-linux64-ix-0006\">bm86-build1</a>",
+        "notes": "",
+        "row_class": "working",
+        "slave_state": "working",
+        "starttime": "2014-12-24 13:21:51"
+    },
+    "b-linux64-ix-0007": {
+        "elapsed_on_job": "2:25:28",
+        "elapsed_since_job": "0:02:54",
+        "elapsed_since_job_secs": 174,
+        "enabled": "Yes",
+        "master": "<a href=\"http://buildbot-master85.srv.releng.scl3.mozilla.com:8001/buildslaves/b-linux64-ix-0007\">bm85-build1</a>",
+        "notes": "",
+        "row_class": "working",
+        "slave_state": "working",
+        "starttime": "2014-12-24 11:11:41"
+    },
+    "b-linux64-ix-0008": {
+        "elapsed_on_job": "0:15:23",
+        "elapsed_since_job": "0:38:49",
+        "elapsed_since_job_secs": 2329,
+        "enabled": "Yes",
+        "master": "<a href=\"http://buildbot-master86.srv.releng.scl3.mozilla.com:8001/buildslaves/b-linux64-ix-0008\">bm86-build1</a>",
+        "notes": "",
+        "row_class": "working",
+        "slave_state": "working",
+        "starttime": "2014-12-24 12:45:51"
+    },
+    "b-linux64-ix-0009": {
+        "elapsed_on_job": "1:25:37",
+        "elapsed_since_job": "0:43:01",
+        "elapsed_since_job_secs": 2581,
+        "enabled": "Yes",
+        "master": "<a href=\"http://buildbot-master85.srv.releng.scl3.mozilla.com:8001/buildslaves/b-linux64-ix-0009\">bm85-build1</a>",
+        "notes": "",
+        "row_class": "working",
+        "slave_state": "working",
+        "starttime": "2014-12-24 11:31:25"
+    },
+    "b-linux64-ix-0010": {
+        "elapsed_on_job": "3:19:38",
+        "elapsed_since_job": "1:05:33",
+        "elapsed_since_job_secs": 3933,
+        "enabled": "Yes",
+        "master": "<a href=\"http://buildbot-master84.srv.releng.scl3.mozilla.com:8001/buildslaves/b-linux64-ix-0010\">bm84-build1</a>",
+        "notes": "",
+        "row_class": "working",
+        "slave_state": "working",
+        "starttime": "2014-12-24 09:14:52"
+    },
+    "b-linux64-ix-0011": {
+        "elapsed_on_job": "0:53:55",
+        "elapsed_since_job": "22 days, 14:40:43",
+        "elapsed_since_job_secs": 1953643,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/b-linux64-ix-0011\">None</a>",
+        "notes": "needs moar free space",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-12-01 22:05:25"
+    },
+    "metadata": {
+        "generated": "2014-12-24T21:40:03.612222Z"
+    }
+}

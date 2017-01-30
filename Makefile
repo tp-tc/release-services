@@ -14,6 +14,7 @@ APPS=\
 	releng-mapper \
 	releng-archiver \
 	releng-frontend \
+	releng-slavehealth \
 	shipit-uplift \
 	shipit-bot-uplift \
 	shipit-pipeline \
@@ -48,6 +49,7 @@ APP_DEV_PORT_releng-tooltool=8002
 APP_DEV_PORT_releng-treestatus=8003
 APP_DEV_PORT_releng-mapper=8004
 APP_DEV_PORT_releng-archiver=8005
+APP_DEV_PORT_releng-slavehealth=8006
 
 APP_DEV_PORT_shipit-frontend=8010
 APP_DEV_PORT_shipit-uplift=8011
@@ -71,6 +73,7 @@ APP_DEV_ENV_releng-frontend=\
 	WEBPACK_TREESTATUS_URL=https://$(APP_DEV_HOST):$(APP_DEV_PORT_releng-treestatus) \
 	WEBPACK_MAPPER_URL=https://$(APP_DEV_HOST):$(APP_DEV_PORT_releng-mapper) \
 	WEBPACK_ARCHIVER_URL=https://$(APP_DEV_HOST):$(APP_DEV_PORT_releng-archiver) \
+	WEBPACK_SLAVEHEALTH_URL=https://$(APP_DEV_HOST):$(APP_DEV_PORT_releng-slavehealth) \
 	$(APP_DEV)
 APP_DEV_ENV_shipit-frontend=\
 	WEBPACK_UPLIFT_URL=https://$(APP_DEV_HOST):$(APP_DEV_PORT_shipit-uplift) \
@@ -83,13 +86,14 @@ APP_STAGING_HEROKU_releng-tooltool=releng-staging-tooltool
 APP_STAGING_HEROKU_releng-treestatus=releng-staging-treestatus
 APP_STAGING_HEROKU_releng-mapper=releng-staging-mapper
 APP_STAGING_HEROKU_releng-archiver=releng-staging-archiver
+APP_STAGING_HEROKU_releng-slavehealth=releng-staging-slavehealth
 
 APP_STAGING_HEROKU_shipit-uplift=shipit-staging-dashboard
 
 APP_STAGING_S3_releng-docs=releng-staging-docs
 APP_STAGING_S3_releng-frontend=releng-staging-frontend
 APP_STAGING_S3_shipit-frontend=shipit-staging-frontend
-APP_STAGING_CSP_releng-frontend=https://auth.taskcluster.net https://clobberer.staging.mozilla-releng.net https://tooltool.staging.mozilla-releng.net https://treestatus.staging.mozilla-releng.net https://mapper.staging.mozilla-releng.net https://archiver.staging.mozilla-releng.net
+APP_STAGING_CSP_releng-frontend=https://auth.taskcluster.net https://clobberer.staging.mozilla-releng.net https://tooltool.staging.mozilla-releng.net https://treestatus.staging.mozilla-releng.net https://mapper.staging.mozilla-releng.net https://archiver.staging.mozilla-releng.net https://slavehealth.staging.mozilla-releng.net
 APP_STAGING_ENV_releng-frontend=\
 	'version="v$(VERSION)"' \
 	'docs-url="https:\/\/docs\.staging\.mozilla-releng\.net\"' \
@@ -97,7 +101,8 @@ APP_STAGING_ENV_releng-frontend=\
 	'tooltool-url="https:\/\/tooltool\.staging\.mozilla-releng\.net\"' \
 	'treestatus-url="https:\/\/treestatus\.staging\.mozilla-releng\.net\"' \
 	'mapper-url="https:\/\/mapper\.staging\.mozilla-releng\.net\"' \
-	'archiver-url="https:\/\/archiver\.staging\.mozilla-releng\.net\"'
+	'archiver-url="https:\/\/archiver\.staging\.mozilla-releng\.net\"' \
+	'slavehealth-url="https:\/\/slavehealth\.staging\.mozilla-releng\.net\"'
 APP_STAGING_CSP_shipit-frontend=https://auth.taskcluster.net https://dashboard.shipit.staging.mozilla-releng.net https://bugzilla.mozilla.org
 APP_STAGING_ENV_shipit-frontend=\
 	'version="v$(VERSION)"' \
@@ -109,12 +114,14 @@ APP_PRODUCTION_HEROKU_releng-tooltool=releng-production-tooltool
 APP_PRODUCTION_HEROKU_releng-treestatus=releng-production-treestatus
 APP_PRODUCTION_HEROKU_releng-mapper=releng-production-mapper
 APP_PRODUCTION_HEROKU_releng-archiver=releng-production-archiver
+APP_PRODUCTION_HEROKU_releng-slavehealth=releng-production-slavehealth
+
 APP_PRODUCTION_HEROKU_shipit-uplift=shipit-production-dashboard
 
 APP_PRODUCTION_S3_releng-docs=releng-production-docs
 APP_PRODUCTION_S3_releng-frontend=releng-production-frontend
 APP_PRODUCTION_S3_shipit-frontend=shipit-production-frontend
-APP_PRODUCTION_CSP_releng-frontend=https://auth.taskcluster.net https://clobberer.mozilla-releng.net https://tooltool.mozilla-releng.net https://treestatus.mozilla-releng.net https://mapper.mozilla-releng.net https://archiver.mozilla-releng.net
+APP_PRODUCTION_CSP_releng-frontend=https://auth.taskcluster.net https://clobberer.mozilla-releng.net https://tooltool.mozilla-releng.net https://treestatus.mozilla-releng.net https://mapper.mozilla-releng.net https://archiver.mozilla-releng.net https://slavehealth.mozilla-releng.net
 APP_PRODUCTION_ENV_releng-frontend=\
 	'version="v$(VERSION)"' \
 	'docs-url="https:\/\/docs\.mozilla-releng\.net\"' \
@@ -122,7 +129,8 @@ APP_PRODUCTION_ENV_releng-frontend=\
 	'tooltool-url="https:\/\/tooltool\.mozilla-releng\.net\"' \
 	'treestatus-url="https:\/\/treestatus\.mozilla-releng\.net\"' \
 	'mapper-url="https:\/\/mapper\.mozilla-releng\.net\"' \
-	'archiver-url="https:\/\/archiver\.mozilla-releng\.net\"'
+	'archiver-url="https:\/\/archiver\.mozilla-releng\.net\"' \
+	'slavehealth-url="https:\/\/slavehealth\.mozilla-releng\.net\"'
 APP_PRODUCTION_CSP_shipit-frontend=https://auth.taskcluster.net https://dashboard.shipit.mozilla-releng.net https://bugzilla.mozilla.org
 APP_PRODUCTION_ENV_shipit-frontend=\
 	'version="$(VERSION)"' \
@@ -204,6 +212,7 @@ develop-run-releng-tooltool: require-sqlite develop-run-BACKEND
 develop-run-releng-treestatus: require-postgres develop-run-BACKEND
 develop-run-releng-mapper: require-sqlite develop-run-BACKEND
 develop-run-releng-archiver: require-sqlite develop-run-BACKEND
+develop-run-releng-slavehealth: develop-run-BACKEND
 
 develop-run-shipit-frontend: develop-run-FRONTEND
 develop-run-shipit-uplift: require-postgres develop-run-BACKEND
@@ -278,6 +287,7 @@ deploy-staging-releng-tooltool:        deploy-staging-HEROKU
 deploy-staging-releng-treestatus:      deploy-staging-HEROKU
 deploy-staging-releng-mapper:          deploy-staging-HEROKU
 deploy-staging-releng-archiver:        deploy-staging-HEROKU
+deploy-staging-releng-slavehealth:     deploy-staging-HEROKU
 
 deploy-staging-shipit-frontend:        deploy-staging-S3
 deploy-staging-shipit-uplift:          deploy-staging-HEROKU
@@ -329,6 +339,7 @@ deploy-production-releng-tooltool:     # deploy-production-HEROKU
 deploy-production-releng-treestatus:   deploy-production-HEROKU
 deploy-production-releng-mapper:       # deploy-production-HEROKU
 deploy-production-releng-archiver:     # deploy-production-HEROKU
+deploy-production-releng-slavehealth:  # deploy-production-HEROKU
 
 deploy-production-shipit-frontend:     deploy-production-S3
 deploy-production-shipit-uplift:       deploy-production-HEROKU

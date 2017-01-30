@@ -1,0 +1,16 @@
+{
+    "b-linux64-ix-0012": {
+        "elapsed_on_job": "1:36:29",
+        "elapsed_since_job": "4:47:49",
+        "elapsed_since_job_secs": 17269,
+        "enabled": "Yes",
+        "master": "<a href=\"http://buildbot-master87.srv.releng.scl3.mozilla.com:8101/buildslaves/b-linux64-ix-0012\">bm87-try1</a>",
+        "notes": "",
+        "row_class": "working",
+        "slave_state": "working",
+        "starttime": "2014-12-24 07:15:45"
+    },
+    "metadata": {
+        "generated": "2014-12-24T21:40:03.612222Z"
+    }
+}

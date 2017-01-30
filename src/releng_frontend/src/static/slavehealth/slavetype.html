@@ -1,0 +1,202 @@
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>Mozilla Releng Slave Health</title>
+<link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+  <link rel="stylesheet" media="screen,projection,tv" href="./css/responsive-bundle.352a81c95337.css" />
+  <link rel="stylesheet" href="./jquery.tablesorter/themes/blue/style.css" type="text/css" media="print, projection, screen" />
+  <link rel="stylesheet" href="./css/slave_health.css" type="text/css" media="print, projection, screen" />
+  <link rel="stylesheet" href="./css/sexybuttons.css" type="text/css" />
+  <script type="text/javascript" src="./jquery.tablesorter/jquery-1.6.4.min.js"></script>
+  <script type="text/javascript" src="./jquery.tablesorter/jquery.tablesorter.js"></script>
+  <script type="text/javascript" src="./jquery.tablesorter/Class.create.js"></script>
+  <script type="text/javascript" src="./jquery.tablesorter/jquery-encoder-0.1.0.js"></script>
+  <script type="text/javascript" src="./js/bugzilla.js"></script>
+  <script type="text/javascript" src="./js/slave_health.js"></script>
+</head>
+<body class="noscript">
+  <div id="topbar">
+    <div id="title" class="dropdown"><a href="./index.html">Slave Health</a></div>
+    <div class="dropdown separator">&gt;</div>
+    <div id="slavetype" class="dropdown"></div>
+    <div class="topbarright">
+      <div id="pending" class="dropdown">
+        Pending: <span class="pending">0</span>
+      </div>
+      <div id="batch" class="dropdown"><h2>batch actions</h2>
+        <div class="dropdownBatch">
+          Available actions:<br/>
+          <ul>
+            <li><span id="brokenrebootlink" class="activelink">Reboot all broken slaves</span></li>
+            <li><span id="idlerebootlink" class="activelink">Reboot slaves that have<br/>not reported in # minutes: </span><input id="idleminutes" type="text" value="300" /></li>
+          </ul>
+          <hr/>
+          <div id="batchactionstatus"><span id="message" title="batch action status" class="default"></div>
+        </div>
+      </div>
+      <div id="legend" class="dropdown">
+        <h2>Legend</h2>
+        <div class="dropdownContents">
+          <table id="verbose">
+            <tr><td><span class="broken" title="Broken">Broken</span>:</td><td>Machines that have not reported a build/test result in the past 6 hours when there are still jobs pending.</td></tr>
+            <tr><td><span class="idle" title="Idle">Idle</span>:</td><td>Machines that have not taken a job in more than 6 hours when there are no jobs pending.</td></tr>
+            <tr><td><span class="stopped" title="Stopped">Stopped</span>:</td><td>AWS instances that are not running == excess capacity</td></tr>
+            <tr><td><span class="working" title="Working">Working</span>:</td><td>Machines that have taken a job within the past 6 hours</td></tr>
+            <tr><td><span class="disabled" title="Disabled">Disabled</span>:</td><td>Machines that are disabled in <a target="_slavealloc" href="https://secure.pub.build.mozilla.org/slavealloc/ui/#slaves">slavealloc</a></td></tr>
+            <tr><td><span class="staging" title="Staging">Staging</span>:</td><td>Machines allocated to staging environments or loaned to devs</td></tr>
+          </table>
+        </div>
+      </div>
+      <div id="generated" class="dropdown">
+        Data generated at: <span class="generated">???</span>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="attention" id="included" style="display:none;">Display only Slaves Including: <span class="slaves"></span></div>
+    <div class="attention" id="excluded" style="display:none;">Excluding these Slaves: <span class="slaves"></span></div>
+    <table id="lastbuild" class="tablesorter" border="0" cellpadding="0" cellspacing="1"><thead>
+        <tr>
+          <th class="header headerSortDown">Name</th>
+          <th class="header">Time since<br>last job</th>
+          <th class="header">State</th>
+          <th class="header">Master</th>
+          <th class="header headerSortDown">Start time</th>
+          <th class="header">Elapsed</th>
+          <th class="header">Slavealloc<br>Notes</th>
+          <th class="header headerSortUp">Enabled in<br>Slavealloc?</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <script type="text/javascript">
+    $(document).ready(function(){
+      // Add a special parser that allows us sort by a table cell attribute
+      // (in this case, seconds) rather than the formatted value in the cell
+      $.tablesorter.addParser({
+        // set a unique id
+        id: 'seconds_sort',
+        is: function (s) {
+          // return false so this parser is not auto detected
+          return false;
+        },
+        format: function (s, table, cell, cellIndex) {
+          // get data attributes from $(cell).attr('data-something');
+          // check specific column using cellIndex
+          return $(cell).attr('seconds');
+        },
+        // set type, either numeric or text
+        type: 'numeric'
+      });
+      $(".dropdown").live("click", function dropdownClick(ev) {
+        $(this).addClass("open");
+      });
+      $("html").bind("mousedown", function clickAnywhere(e) {
+        // Close open dropdowns if the event's target is not inside
+        // an open dropdown.
+        if ($(e.target).parents(".dropdown.open").length == 0) {
+          $(".dropdown").removeClass("open");
+        }
+      });
+      $('span#brokenrebootlink').click(function () { rebootBrokenSlaves() });
+      $('span#idlerebootlink').click(function () {
+        var minutes = $("input#idleminutes").val();
+        rebootIdleSlaves(minutes);
+      });
+      $("input#idleminutes").keyup(function(event) {
+        if (event.keyCode == 13) {
+          $('span#idlerebootlink').click();
+        }
+      });
+
+      var base_url = $('body').data('slavehealth-url') || "https://127.0.0.1:8006" ;
+
+      var params = ""
+      var slaveclass = getParameterByName('class');
+      var slavetype = getParameterByName('type');
+      var include_slaves = getParameterByName('include')
+      var exclude_slaves = getParameterByName('exclude');
+      if (slavetype) {
+        document.title = slavetype + " - " + document.title;
+      }
+      if (slavetype && slaveclass) {
+        params += params.length ? '&' : '?'; // Start with the right sep
+        params += "class=" + slaveclass + "&type=" + slavetype;
+      }
+      if (include_slaves) {
+        include_slaves = include_slaves.split('%2C'); // %%2C is comma URLEncoded
+        params += params.length ? '&' : '?'; // Start with the right sep
+        params += "include=" + include_slaves.join(',');
+        $("#included span.slaves").text(include_slaves.join(", "));
+        $("#included").toggle();
+      }
+      if (exclude_slaves) {
+        exclude_slaves = exclude_slaves.split('%2C'); // %%2C is comma URLEncoded
+        params += params.length ? '&' : '?'; // Start with the right sep
+        params += "exclude=" + exclude_slaves.join(',');
+        $("#excluded span.slaves").text(exclude_slaves.join(", "));
+        $("#excluded").toggle();
+      }
+      $('div#slavetype').html(slavetype);
+        var pending_json = base_url + "/pendings" ;
+      var pending_count = 0;
+      if (slaveclass && slavetype) {
+        type_json = base_url + '/slaves/' + slaveclass + '/' + slavetype 
+      } else {
+        type_json = base_url +  '/slaves';  //added
+      }
+     //   debugger
+      $.getJSON(type_json, function(data){
+        $.each(data, function(slavename, slavedata) {
+          if (slavename == 'metadata') {
+            var generated = new Date(data[slavename]['generated']);
+            $('span.generated').html(generated.toLocaleString());
+            return;
+          }
+          // Don't create row for excluded slave.
+          if (exclude_slaves.length && ($.inArray(slavename, exclude_slaves) != -1)) {
+            return; // jquery .each() continue.
+          }
+          // If we have include_slaves don't create rows for any not matched
+          if (include_slaves.length && ($.inArray(slavename, include_slaves) == -1)) {
+            return; // jquery .each() continue
+          }
+          createRowForSlave(slavetype, slavename, slavedata, params);
+        });
+        swapBrokenAndIdle(pending_count)
+        $("#lastbuild").tablesorter({
+          sortList:[[7,1],[4,0],[0,0]],
+          widgets: ["zebra"],
+          headers: { 1: { sorter: 'seconds_sort' } }
+        });
+      });
+      $.getJSON(pending_json, function(data){
+        var total_pending_count = Object.keys(data.pending).length;
+        var counter = 0;
+        $.each(data['pending'], function(job, branch) {
+          $.each(branch, function(revision, job_details) {
+            $.each(job_details, function(i) {
+              var buildername = job_details[i]['buildername'];
+              var job_slaveclass = getSlaveclassForPendingJob(buildername);
+              if (job_slaveclass == "" || job_slaveclass != slaveclass) {
+                return;
+              }
+              var job_slavetype = getSlavetypeForPendingJob(job_slaveclass, buildername);
+              if (job_slavetype != slavetype) {
+                return;
+              };
+              pending_count++;
+            });
+          });
+          counter++;
+          // Update pending count at the end, and update any row classes if we need to.
+          if (total_pending_count == counter) {
+            swapBrokenAndIdle(pending_count)
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

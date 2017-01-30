@@ -1,0 +1,29 @@
+{
+    "metadata": {
+        "generated": "2015-01-27T06:49:31.046908Z"
+    },
+    "tst-emulator64-ec2-001": {
+        "elapsed_on_job": "0:52:25",
+        "elapsed_since_job": "80 days, 13:53:36",
+        "elapsed_since_job_secs": 6962016,
+        "enabled": "No",
+        "master": "<a href=\"http://buildbot-master117.bb.releng.use1.mozilla.com:8201/buildslaves/tst-emulator64-ec2-001\">bm117-tests1-linux64</a>",
+        "notes": "testing <a href='https://bugzil.la/1042358'>bug 1042358</a>",
+        "row_class": "disabled",
+        "slave_class": "test",
+        "slave_state": "disabled",
+        "starttime": "2014-11-07 08:03:30"
+    },
+    "tst-emulator64-ec2-002": {
+        "elapsed_on_job": "1:12:13",
+        "elapsed_since_job": "62 days, 3:30:55",
+        "elapsed_since_job_secs": 5369455,
+        "enabled": "No",
+        "master": "<a href=\"http://buildbot-master51.srv.releng.use1.mozilla.com:8201/buildslaves/tst-emulator64-ec2-002\">bm51-tests1-linux64</a>",
+        "notes": "testing <a href='https://bugzil.la/1042358'>bug 1042358</a>",
+        "row_class": "disabled",
+        "slave_class": "test",
+        "slave_state": "disabled",
+        "starttime": "2014-11-25 18:06:23"
+    }
+}

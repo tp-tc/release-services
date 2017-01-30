@@ -1,0 +1,272 @@
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>Slave Health</title>
+<link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+  <link rel="stylesheet" media="screen,projection,tv" href="./css/responsive-bundle.352a81c95337.css" />
+  <link rel="stylesheet" href="./css/slave_health.css" type="text/css" media="print, projection, screen" />
+  <link rel="stylesheet" href="./jquery.tablesorter/themes/blue/style.css" type="text/css" media="print, projection, screen" />
+  <script type="text/javascript" src="./jquery.tablesorter/jquery-1.6.4.min.js"></script>
+  <script type="text/javascript" src="./jquery.tablesorter/Class.create.js"></script>
+  <script type="text/javascript" src="./jquery.tablesorter/jquery-encoder-0.1.0.js"></script>
+  <script type="text/javascript" src="./js/slave_health.js"></script>
+</head>
+<body class="noscript">
+  <div id="topbar">
+    <div id="title" class="dropdown"><a href="./index.html">Slave Health</a></div>
+    <div class="topbarright">
+      <div id="unknown" class="dropdown">
+        <h2>Unknown Pending</h2>
+        <div class="dropdownContents">
+          <table id="unknown">
+            <tr>
+              <th>buildername</th>
+              <th>class</th>
+              <th>type</th>
+              <th>count</th>
+            </tr>
+            <tr id="none">
+              <td colspan="4">none found</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      <div id="legend" class="dropdown">
+        <h2>Legend</h2>
+        <div class="dropdownContents">
+          <div>
+            <span class="total" title="Total">Total:</span> <span class="broken" title="Broken">Broken</span><small> or </small><span class="idle" title="Idle">Idle</span><small> or </small><span class="stopped" title="Stopped">Stopped</span> | <span class="working" title="Working">Working</span> | <span class="disabled" title="Disabled">Disabled</span> | <span class="staging" title="Staging">Staging</span>
+          </div>
+          <hr />
+          <table id="verbose">
+            <tr>
+              <td><span class="total" title="Total">Total</span>:</td>
+              <td>The number of machines across all status types</td>
+            </tr>
+            <tr>
+              <td><span class="broken" title="Broken">Broken</span>:</td>
+              <td>Machines that have not reported a build/test result in the past 6 hours when there are still jobs pending.</td>
+            </tr>
+            <tr>
+              <td><span class="idle" title="Idle">Idle</span>:</td>
+              <td>Machines that have not taken a job in more than 6 hours when there are no jobs pending.</td>
+            </tr>
+            <tr>
+              <td><span class="stopped" title="Stopped">Stopped</span>:</td>
+              <td>AWS instances that are not running == excess capacity</td>
+            </tr>
+            <tr>
+              <td><span class="working" title="Working">Working</span>:</td>
+              <td>Machines that have taken a job within the past 6 hours</td>
+            </tr>
+            <tr>
+              <td><span class="disabled" title="Disabled">Disabled</span>:</td>
+              <td>Machines that are disabled in <a target="_slavealloc" href="https://secure.pub.build.mozilla.org/slavealloc/ui/#slaves">slavealloc</a></td>
+            </tr>
+            <tr>
+              <td><span class="staging" title="Staging">Staging</span>:</td>
+              <td>Machines allocated to staging environments or loaned to devs</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      <div id="generated" class="dropdown">
+        Data generated at: <span id="generated">???</span>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="compile">
+      <table id="build">
+        <tr>
+          <th>Build slaves</th>
+          <th class="pending">Pending</th>
+          <th>Pool status&nbsp;<a href="./build_trends.html"><img class="charticon" src="./icons/AreaChart.png" title="Build slave trend charts" /><img class="charticon" src="./icons/bullet_go.png" title="Build slave trend charts"/></a></th>
+        </tr>
+        <tr class="heading">
+          <td class="OS" colspan="3">Linux</td>
+        </tr>
+        <tr id="bld-linux64-spot">
+          <td class="slavetype"><a href="./slavetype.html?class=build&type=bld-linux64-spot">bld-linux64-spot</a></td>
+          <td rowspan="1" class="pending">0</td>
+          <td class="status"></td>
+        </tr>
+        <tr class="heading">
+          <td class="OS" colspan="3">Mac</td>
+        </tr>
+        <tr id="bld-lion-r5">
+          <td class="slavetype"><a href="./slavetype.html?class=build&type=bld-lion-r5">bld-lion-r5</a></td>
+          <td class="pending">0</td>
+          <td class="status"></td>
+        </tr>
+        <tr class="heading">
+          <td class="OS" colspan="3">Windows</td>
+        </tr>
+        <tr id="b-2008-spot">
+          <td class="slavetype"><a href="./slavetype.html?class=build&type=b-2008-spot">b-2008-spot</a></td>
+          <td rowspan="1" class="pending">0</td>
+          <td class="status"></td>
+        </tr>
+      </table>
+      <table id="try">
+        <tr>
+          <th>Try slaves</th>
+          <th class="pending">Pending</th>
+          <th>Pool status&nbsp;<a href="./try_trends.html"><img class="charticon" src="./icons/AreaChart.png" title="Try slave trend charts" /><img class="charticon" src="./icons/bullet_go.png" title="Try slave trend charts"/></a></th>
+        </tr>
+        <tr class="heading">
+          <td class="OS" colspan="3">Linux</td>
+        </tr>
+        <tr id="try-linux64-spot">
+          <td class="slavetype"><a href="./slavetype.html?class=try&type=try-linux64-spot">try-linux64-spot</a></td>
+          <td class="pending">0</td>
+          <td class="status"></td>
+        </tr>
+        <tr class="heading">
+          <td class="OS" colspan="3">Mac</td>
+        </tr>
+        <tr id="bld-lion-r5">
+          <td class="slavetype"><a href="./slavetype.html?class=try&type=bld-lion-r5">bld-lion-r5</a></td>
+          <td class="pending">0</td>
+          <td class="status"></td>
+        </tr>
+        <tr class="heading">
+          <td class="OS" colspan="3">Windows</td>
+        </tr>
+        <tr id="y-2008-spot">
+          <td class="slavetype"><a href="./slavetype.html?class=try&type=y-2008-spot">y-2008-spot</a></td>
+          <td rowspan="1" class="pending">0</td>
+          <td class="status"></td>
+        </tr>
+      </table>
+    </div>
+    <div class="test">
+      <table id="test">
+        <tr>
+          <th>Test slaves</th>
+          <th class="pending">Pending</th>
+          <th>Pool status&nbsp;<a href="./test_trends.html"><img class="charticon" src="./icons/AreaChart.png" title="Test slave trend charts" /><img class="charticon" src="./icons/bullet_go.png" title="Test slave trend charts"/></a></th>
+        </tr>
+        <tr class="heading">
+          <td class="OS" colspan="3">Android</td>
+        </tr>
+        <tr id="tst-emulator64-spot">
+          <td class="slavetype"><a href="./slavetype.html?class=test&type=tst-emulator64-spot">tst-emulator64-spot</a></td>
+          <td class="pending">0</td>
+          <td class="status"></td>
+        </tr>
+        <tr class="heading">
+          <td class="OS" colspan="3">Linux</td>
+        </tr>
+        <tr id="talos-linux64-ix">
+          <td class="slavetype"><a href="./slavetype.html?class=test&type=talos-linux64-ix">talos-linux64-ix</a></td>
+          <td class="pending">0</td>
+          <td class="status"></td>
+        </tr>
+        <tr id="tst-linux32-spot">
+          <td class="slavetype"><a href="./slavetype.html?class=test&type=tst-linux32-spot">tst-linux32-spot</a></td>
+          <td class="pending">0</td>
+          <td class="status"></td>
+        </tr>
+        <tr id="tst-linux64-spot">
+          <td class="slavetype"><a href="./slavetype.html?class=test&type=tst-linux64-spot">tst-linux64-spot</a></td>
+          <td class="pending">0</td>
+          <td class="status"></td>
+        </tr>
+        <tr class="heading">
+          <td class="OS" colspan="3">Mac</td>
+        </tr>
+        <tr id="t-snow-r4">
+          <td class="slavetype"><a href="./slavetype.html?class=test&type=t-snow-r4">t-snow-r4</a></td>
+          <td class="pending">0</td>
+          <td class="status"></td>
+        </tr>
+        <tr id="t-yosemite-r7">
+          <td class="slavetype"><a href="./slavetype.html?class=test&type=t-yosemite-r7">t-yosemite-r7</a></td>
+          <td class="pending">0</td>
+          <td class="status"></td>
+        </tr>
+        <tr class="heading">
+          <td class="OS" colspan="3">Windows</td>
+        </tr>
+        <tr id="g-w732-spot">
+          <td class="slavetype"><a href="./slavetype.html?class=test&type=g-w732-spot">g-w732-spot</a></td>
+          <td class="pending" rowspan="1">0</td>
+          <td class="status"></td>
+        </tr>
+        <tr id="t-w732-ix">
+          <td class="slavetype"><a href="./slavetype.html?class=test&type=t-w732-ix">t-w732-ix</a></td>
+          <td class="pending" rowspan="1">0</td>
+          <td class="status"></td>
+        </tr>
+        <tr id="t-w732-spot">
+          <td class="slavetype"><a href="./slavetype.html?class=test&type=t-w732-spot">t-w732-spot</a></td>
+          <td class="pending" rowspan="1">0</td>
+          <td class="status"></td>
+        </tr>
+        <tr id="t-w864-ix">
+          <td class="slavetype"><a href="./slavetype.html?class=test&type=t-w864-ix">t-w864-ix</a></td>
+          <td class="pending">0</td>
+          <td class="status"></td>
+        </tr>
+        <tr id="t-w1064-ix">
+          <td class="slavetype"><a href="./slavetype.html?class=test&type=t-w1064-ix">t-w1064-ix</a></td>
+          <td class="pending">0</td>
+          <td class="status"></td>
+        </tr>
+        <tr id="t-xp32-ix">
+          <td class="slavetype"><a href="./slavetype.html?class=test&type=t-xp32-ix">t-xp32-ix</a></td>
+          <td class="pending">0</td>
+          <td class="status"></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+  <script type="text/javascript">
+     var base_url = $('body').data('slavehealth-url') || "https://127.0.0.1:8006";
+ //   var base_url = $('body').data('slavehealth-url')
+ //   if (!base_url) { base_url = "https://127.0.0.1:8006"; } 
+//     var state_json = "./json/slave_state_rollup.json";
+    var state_json = base_url + "/slaves_state" ;
+//    var pending_json = base_url + "/pendings" ;
+    var pending_json = "https://secure.pub.build.mozilla.org/buildapi/pending?format=json";
+//    if (local_test == true) {
+//      state_json = "./json/test_json/slave_state_rollup.json";
+//      pending_json = "./json/test_json/pending.json";
+//    }
+    $(document).ready(function(){
+      generateReportsDropdown('index');
+      $(".dropdown").live("click", function dropdownClick(ev) {
+        $(this).addClass("open");
+      });
+      $("html").bind("mousedown", function clickAnywhere(e) {
+        // Close open dropdowns if the event's target is not inside
+        // an open dropdown.
+        if ($(e.target).parents(".dropdown.open").length == 0)
+          $(".dropdown").removeClass("open");
+      });
+      $.getJSON(state_json, function(data){
+        $.each(data, function(slaveclass, slavetypes) {
+          if (slaveclass == 'metadata') {
+            var generated = new Date(data[slaveclass]['generated']);
+            $('span#generated').html(generated.toLocaleString());
+            return;
+          }
+          $.each(slavetypes, function(slavetype, states) {
+            updateSlavetypeStatus(slaveclass, slavetype, states);
+          });
+        });
+      });
+      $.getJSON(pending_json, function(data){
+        $.each(data['pending'], function(job, branch) {
+          $.each(branch, function(revision, job_details) {
+            $.each(job_details, function(i) {
+              updatePendingCount(job_details[i]['buildername']);
+            });
+          });
+        });
+      });
+    });
+  </script>
+</body>
+</html>

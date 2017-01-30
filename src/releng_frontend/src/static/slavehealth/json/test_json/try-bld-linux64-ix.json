@@ -1,0 +1,27 @@
+{
+    "bld-linux64-ix-049": {
+        "elapsed_on_job": "0:29:37",
+        "elapsed_since_job": "4:12:34",
+        "elapsed_since_job_secs": 15154,
+        "enabled": "Yes",
+        "master": "<a href=\"http://buildbot-master83.srv.releng.scl3.mozilla.com:8101/buildslaves/bld-linux64-ix-049\">bm83-try1</a>",
+        "notes": "",
+        "row_class": "working",
+        "slave_state": "working",
+        "starttime": "2014-06-16 07:37:52"
+    },
+    "bld-linux64-ix-050": {
+        "elapsed_on_job": "2:29:04",
+        "elapsed_since_job": "16:10:08",
+        "elapsed_since_job_secs": 58208,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/bld-linux64-ix-050\">None</a>",
+        "notes": "",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-06-15 17:40:51"
+    },
+    "metadata": {
+        "generated": "2014-06-16T19:20:03.578484Z"
+    }
+}

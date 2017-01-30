@@ -29,6 +29,10 @@ view model =
             "TryChooser"
             "Generate parts of try syntax and restrict tests to certain directories."
             (href "/trychooser")
+        [ viewCard
+            "SlaveHealth"
+            "TODO: write description what SlaveHealth does."
+            (href "/slavehealth")
         , viewCard
             "TreeStatus"
             "Current status of Mozilla's version-control repositories."

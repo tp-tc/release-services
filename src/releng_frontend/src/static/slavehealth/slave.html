@@ -1,0 +1,178 @@
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>Mozilla Releng Slave Health</title>
+<link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+  <link rel="stylesheet" media="screen,projection,tv" href="./css/responsive-bundle.352a81c95337.css" />
+  <link rel="stylesheet" href="./jquery.tablesorter/themes/blue/style.css" type="text/css" media="print, projection, screen" />
+  <link rel="stylesheet" href="./css/slave_health.css" type="text/css" media="print, projection, screen" />
+  <link rel="stylesheet" href="./css/sexybuttons.css" type="text/css" />
+  <script type="text/javascript" src="./jquery.tablesorter/jquery-1.6.4.min.js"></script>
+  <script type="text/javascript" src="./jquery.tablesorter/jquery.tablesorter.js"></script>
+  <script type="text/javascript" src="./jquery.tablesorter/Class.create.js"></script>
+  <scripxt type="text/javascript" src="./jquery.tablesorter/jquery-encoder-0.1.0.js"></script>
+  <script type="text/javascript" src="./js/bugzilla.js"></script>
+  <script type="text/javascript" src="./js/slave_health.js"></script>
+</head>
+<body class="noscript">
+  <div id="topbar">
+    <div id="title" class="dropdown"><a href="./index.html">Slave Health</a></div>
+    <div class="dropdown separator"> &gt; </div>
+    <div id="slavetype" class="dropdown"></div>
+    <div class="dropdown separator"> &gt; </div>
+    <div id="slavename" class="dropdown"></div>
+    <div class="topbarright">
+      <div class="dropdown">
+        Data generated at: <span class="generated">???</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="leftpane">
+      <div id="slavename_display"></div><div id="bugstate"><div id="bugicon"></div><div id="bugtext"><div id="bugexists"></div><div id="bugstatus"></div></div></div>
+      <div id="slavealloc">
+        <div class="sectionheader">
+          <div class="title"><h2>Slavealloc</h2></div>
+          <div class="image"><button id="editslavealloc" class="sexybutton sexyicononly disabled" disabled="disabled" title="Edit slavealloc info"><span><span><span class="edit"></span></span></span></button></div>
+          <div class="image"><button id="submitslavealloc" class="sexybutton sexyicononly disabled" disabled="disabled" title="Submit changes to slavealloc"><span><span><span class="submit"></span></span></span></button></div>
+          <div id="slaveallocstatus"></div>
+        </div>
+        <br clear="all" />
+        <div class="slavealloc_row">
+          <div class="slavealloc_data" title="distro" id="slavealloc_distro">distro</div><div class="slavealloc_data separator"> &bull; </div>
+          <div class="slavealloc_data" title="bitlength" id="slavealloc_bits">bitlength</div><div class="slavealloc_data separator"> &bull; </div>
+          <div class="slavealloc_data" title="speed" id="slavealloc_speed">speed</div>
+        </div>
+        <br clear="all" />
+        <div class="slavealloc_row">
+          <div class="slavealloc_data" title="enabled?" id="slavealloc_enabled">Enabled?</div><div class="slavealloc_data separator"> &bull; </div>
+          <div class="slavealloc_data" title="basedir" id="slavealloc_basedir">basedir</div>
+        </div>
+        <br clear="all" />
+        <div class="slavealloc_row">
+          <div class="slavealloc_data" title="datacenter" id="slavealloc_datacenter">datacenter</div><div class="slavealloc_data separator"> &bull; </div>
+          <div class="slavealloc_data" title="trust level" id="slavealloc_trustlevel">trustlevel</div><div class="slavealloc_data separator"> &bull; </div>
+          <div class="slavealloc_data" title="environment" id="slavealloc_env">env</div><div class="slavealloc_data separator"> &bull; </div>
+          <div class="slavealloc_data" title="purpose" id="slavealloc_purpose">purpose</div>
+        </div>
+        <br clear="all" />
+        <div class="slavealloc_row">
+          <div class="slavealloc_data" title="pool" id="slavealloc_pool">pool</div><div class="slavealloc_data separator"> &bull; </div>
+          <div class="slavealloc_data" title="buildbot master" id="slavealloc_master">current buildbot master</div>
+        </div>
+        <br clear="all" />
+        <div id="slavealloc_notes_row" class="slavealloc_row">
+          <div class="slavealloc_data">Notes:</div>
+          <div class="slavealloc_data" title="slavealloc notes" id="slavealloc_notes">No notes in slavealloc</div>
+        </div>
+      </div>
+      <div id="nagios">
+        <div class="sectionheader">
+          <div class="title"><h2>Nagios</h2></div>
+          <div><a id="nagiosexternallink" target="_nagios" href=""><button id="nagios" class="sexybutton sexyicononly disabled" disabled="disabled" title="Go to nagios to see history for this slave"><span><span><span class="linkgo"></span></span></span></button></a></div>
+        </div>
+        <table class="notifications"></table>
+        No nagios history available.
+      </div>
+      <div id="reboothistory">
+        <div class="sectionheader">
+          <div class="title"><h2>Reboot History</h2></div>
+          <div class="image"><button id="shutdownslave" class="sexybutton sexyicononly disabled" disabled="disabled" title="Shutdown buildbot"><span><span><span class="shutdown"></span></span></span></button></div>
+          <div class="image"><button id="rebootslave" class="sexybutton sexyicononly disabled" disabled="disabled" title="Reboot slave"><span><span><span class="reboot"></span></span></span></button></div>
+          <div id="rebootactionstatus"></div>
+        </div>
+        <table id="reboothistory">
+          <tbody>
+            <tr><th>Date/Time</th><th>Action</th><th>Output</th></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="rightpane">
+      <div id="lasttenjobs">
+        <h2>Last 10 Jobs</h2>
+        <table id="lasttenjobs">
+          <tbody>
+            <tr><th>Builder name</th><th>Start</th><th>End</th><th>Duration</th></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="lasthundredjobs"><h2>Last 100 Jobs</h2>
+        <div id="jobhistory"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <script type="text/javascript">
+    var base_url = $('body').data('slavehealth-url') || "https://127.0.0.1:8006" ;
+    var slave_json = "";
+    var slaveclass = "";
+    var slavetype = "";
+    var slavename = "";
+    var params = "";
+    var notes = "";
+    var master_links = {};
+    var pt_display = getPTDisplay();
+    $(document).ready(function(){
+      $(".dropdown").live("click", function dropdownClick(ev) {
+        $(this).addClass("open");
+      });
+      $("html").bind("mousedown", function clickAnywhere(e) {
+        // Close open dropdowns if the event's target is not inside
+        // an open dropdown.
+        if ($(e.target).parents(".dropdown.open").length == 0)
+          $(".dropdown").removeClass("open");
+      });
+      slaveclass = getParameterByName('class');
+      slavetype = getParameterByName('type');
+      slavename = getParameterByName('name');
+      if (slavename) {
+        document.title = slavename + " - " + document.title;
+      }
+      // Generate breadcrumbs
+      if (slavetype != "") {
+        params = "?class=" + slaveclass + "&type=" + slavetype;
+        $('div#slavetype').html("<a href=\"" + slavetype_url + params + "\">" + slavetype + "</a>");
+      }
+      $('div#slavename').html(slavename);
+      $('div#slavename_display').html(slavename);
+      var generated = new Date();
+      $('span.generated').attr('title', 'Local time').html(generated.toLocaleString());
+      $('div#bugicon').html("<span id=\"" + slavename + "\"><img src=\"./icons/loading.png\" /></span>");
+      getBugByAlias(slavename);
+      if (isAWSInstance(slavename)) {
+        $('button#rebootslave').prop('title','Terminate instance');
+      }
+      slave_json = slavealloc_api_baseurl + "slaves/" + slavename + "?byname=1";
+//      var slave_json = base_url + '/slave_special'  
+//      var slave_json = base_url + '/slaves/' + slaveclass + '/' + slavetype + '/' + slavename 
+ 
+//      if (local_test) {
+//        slave_json = "./json/test_json/slave.json";
+//      }
+//this is used only in development mode,not needed in production
+//always querry slavealloc even in develpment mode
+      var master_id = 0;
+      $.getJSON(slave_json, function(slave){
+        getSlavedata(slave, slaveclass, slavetype, params);
+      });
+      updateNagiosLink(slavename);
+      getReboots(slavename);
+      enableRebootButtons(slavename);
+      var history_json = buildapi_baseurl + slavename + "?format=json&numbuilds=100&greedy=false";
+      var recenthistory = "";
+      $('table#lasttenjobs tr:first-child th:nth-child(2)').append(' (' + pt_display + ')');
+      $('table#lasttenjobs tr:first-child th:nth-child(3)').append(' (' + pt_display + ')');
+      if (local_test) {
+        jobHistoryIsEmpty();
+      } else {
+        $.getJSON(history_json, function(data) {
+          getJobHistory(data);
+        });
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+{
+    "metadata": {
+        "generated": "2014-11-07T23:00:34.469542Z"
+    },
+    "t-mavericks-r5-001": {
+        "elapsed_on_job": "0:04:42",
+        "elapsed_since_job": "17:23:22",
+        "elapsed_since_job_secs": 62602,
+        "enabled": "Yes",
+        "master": "<a href=\"http://buildbot-master106.srv.releng.scl3.mozilla.com:8201/buildslaves/t-mavericks-r5-001\">bm106-tests1-macosx</a>",
+        "notes": "Bug 895639 - testing 10.9 on cedar",
+        "row_class": "broken",
+        "slave_state": "broken",
+        "starttime": "2014-11-06 21:32:30"
+    },
+    "t-mavericks-r5-002": {
+        "elapsed_on_job": "0:07:28",
+        "elapsed_since_job": "2 days, 5:40:11",
+        "elapsed_since_job_secs": 193211,
+        "enabled": "Yes",
+        "master": "<a href=\"http://buildbot-master107.srv.releng.scl3.mozilla.com:8201/buildslaves/t-mavericks-r5-002\">bm107-tests1-macosx</a>",
+        "notes": "",
+        "row_class": "broken",
+        "slave_state": "broken",
+        "starttime": "2014-11-05 09:12:55"
+    },
+    "t-mavericks-r5-003": {
+        "elapsed_on_job": "0:04:07",
+        "elapsed_since_job": "72 days, 6:01:41",
+        "elapsed_since_job_secs": 6242501,
+        "enabled": "No",
+        "master": "<a href=\"http://None:None/buildslaves/t-mavericks-r5-003\">None</a>",
+        "notes": "<a href='https://bugzil.la/1059578'>bug 1059578</a> - loaned to dividehex for 10.10 work",
+        "row_class": "disabled",
+        "slave_state": "disabled",
+        "starttime": "2014-08-27 08:54:46"
+    }
+}

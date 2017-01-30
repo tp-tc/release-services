@@ -1,0 +1,27 @@
+{
+    "metadata": {
+        "generated": "2014-11-07T23:00:34.469542Z"
+    },
+    "tst-w64-ec2-001": {
+        "elapsed_on_job": "0:16:44",
+        "elapsed_since_job": "50 days, 5:33:36",
+        "elapsed_since_job_secs": 4340016,
+        "enabled": "Yes",
+        "master": "<a href=\"http://buildbot-master109.srv.releng.scl3.mozilla.com:8201/buildslaves/tst-w64-ec2-001\">bm109-tests1-windows</a>",
+        "notes": "win64 tests for Date branch - disabled until hw tests are green",
+        "row_class": "broken",
+        "slave_state": "broken",
+        "starttime": "2014-09-18 09:10:14"
+    },
+    "tst-w64-ec2-002": {
+        "elapsed_on_job": "1:59:35",
+        "elapsed_since_job": "50 days, 5:51:28",
+        "elapsed_since_job_secs": 4341088,
+        "enabled": "Yes",
+        "master": "<a href=\"http://buildbot-master110.srv.releng.scl3.mozilla.com:8201/buildslaves/tst-w64-ec2-002\">bm110-tests1-windows</a>",
+        "notes": "win64 tests for Date branch - disabled until hw tests are green",
+        "row_class": "broken",
+        "slave_state": "broken",
+        "starttime": "2014-09-18 07:09:31"
+    }
+}

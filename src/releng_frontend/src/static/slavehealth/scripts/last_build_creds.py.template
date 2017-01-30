@@ -1,0 +1,11 @@
+# Buildbot scheduler db r/o credentials
+db_host=''
+db_name=''
+db_user=''
+db_pass=''
+
+# Slavealloc db r/o credentials
+slavealloc_db_host=''
+slavealloc_db_name=''
+slavealloc_db_user=''
+slavealloc_db_pass=''
