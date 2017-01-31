@@ -15,6 +15,7 @@ APPS=\
 	releng_archiver \
 	releng_frontend \
 	shipit_dashboard \
+	shipit_bot_uplift \
 	shipit_pipeline \
 	shipit_signoff \
 	shipit_frontend
@@ -64,6 +65,7 @@ APP_DEV=\
 APP_DEV_ENV_elm_common_example=\
 	$(APP_DEV)
 APP_DEV_ENV_releng_frontend=\
+	NEO_DOCS_URL=https://$(APP_DEV_HOST):$(APP_DEV_PORT_releng_docs) \
 	NEO_CLOBBERER_URL=https://$(APP_DEV_HOST):$(APP_DEV_PORT_releng_clobberer) \
 	NEO_TOOLTOOL_URL=https://$(APP_DEV_HOST):$(APP_DEV_PORT_releng_tooltool) \
 	NEO_TREESTATUS_URL=https://$(APP_DEV_HOST):$(APP_DEV_PORT_releng_treestatus) \
@@ -87,13 +89,16 @@ APP_STAGING_HEROKU_shipit_dashboard=shipit-staging-dashboard
 APP_STAGING_S3_releng_docs=releng-staging-docs
 APP_STAGING_S3_releng_frontend=releng-staging-frontend
 APP_STAGING_S3_shipit_frontend=shipit-staging-frontend
+APP_STAGING_CSP_releng_frontend=https://auth.taskcluster.net https://clobberer.staging.mozilla-releng.net https://tooltool.staging.mozilla-releng.net https://treestatus.staging.mozilla-releng.net https://mapper.staging.mozilla-releng.net https://archiver.staging.mozilla-releng.net
 APP_STAGING_ENV_releng_frontend=\
 	'version="v$(VERSION)"' \
+	'docs-url="https:\/\/docs\.staging\.mozilla-releng\.net\"' \
 	'clobberer-url="https:\/\/clobberer\.staging\.mozilla-releng\.net\"' \
 	'tooltool-url="https:\/\/tooltool\.staging\.mozilla-releng\.net\"' \
 	'treestatus-url="https:\/\/treestatus\.staging\.mozilla-releng\.net\"' \
 	'mapper-url="https:\/\/mapper\.staging\.mozilla-releng\.net\"' \
 	'archiver-url="https:\/\/archiver\.staging\.mozilla-releng\.net\"'
+APP_STAGING_CSP_shipit_frontend=https://auth.taskcluster.net https://dashboard.shipit.staging.mozilla-releng.net https://bugzilla.mozilla.org
 APP_STAGING_ENV_shipit_frontend=\
 	'version="v$(VERSION)"' \
 	'dashboard-url="https:\/\/dashboard\.shipit\.staging\.mozilla-releng\.net\"' \
@@ -109,13 +114,16 @@ APP_PRODUCTION_HEROKU_shipit_dashboard=shipit-production-dashboard
 APP_PRODUCTION_S3_releng_docs=releng-production-docs
 APP_PRODUCTION_S3_releng_frontend=releng-production-frontend
 APP_PRODUCTION_S3_shipit_frontend=shipit-production-frontend
+APP_PRODUCTION_CSP_releng_frontend=https://auth.taskcluster.net https://clobberer.mozilla-releng.net https://tooltool.mozilla-releng.net https://treestatus.mozilla-releng.net https://mapper.mozilla-releng.net https://archiver.mozilla-releng.net
 APP_PRODUCTION_ENV_releng_frontend=\
 	'version="v$(VERSION)"' \
+	'docs-url="https:\/\/docs\.mozilla-releng\.net\"' \
 	'clobberer-url="https:\/\/clobberer\.mozilla-releng\.net\"' \
 	'tooltool-url="https:\/\/tooltool\.mozilla-releng\.net\"' \
 	'treestatus-url="https:\/\/treestatus\.mozilla-releng\.net\"' \
 	'mapper-url="https:\/\/mapper\.mozilla-releng\.net\"' \
 	'archiver-url="https:\/\/archiver\.mozilla-releng\.net\"'
+APP_PRODUCTION_CSP_shipit_frontend=https://auth.taskcluster.net https://dashboard.shipit.mozilla-releng.net https://bugzilla.mozilla.org
 APP_PRODUCTION_ENV_shipit_frontend=\
 	'version="$(VERSION)"' \
 	'dashboard-url="https:\/\/dashboard\.shipit\.mozilla-releng\.net\"'
@@ -163,7 +171,7 @@ nix:
 
 
 develop: nix require-APP
-	@nix-shell nix/default.nix -A $(APP)
+	@SSL_DEV_CA=$$PWD/tmp nix-shell nix/default.nix -A $(APP)
 
 
 
@@ -208,10 +216,10 @@ develop-flask-shell: nix require-APP
 	DEBUG=true \
 	CACHE_TYPE=filesystem \
 	CACHE_DIR=$$PWD/src/$(APP)/cache \
-  FLASK_APP=$(APP) \
+	FLASK_APP=$(APP) \
 	APP_SETTINGS=$$PWD/src/$(APP)/settings.py \
 		nix-shell nix/default.nix -A $(APP) \
-    --run "flask $(FLASK_CMD)"
+		--run "flask $(FLASK_CMD)"
 
 build-apps: $(foreach app, $(APPS), build-app-$(app))
 
@@ -250,6 +258,7 @@ deploy-staging-S3: \
 			build-app-$(APP)
 	$(eval APP_TMP := $(shell ./result-tool-coreutils/bin/mktemp -d --tmpdir=$$PWD/tmp $(APP).XXXXX))
 	./result-tool-coreutils/bin/cp -rf result-$(APP)/* $(APP_TMP)
+	./result-tool-gnused/bin/sed -i "s|font-src 'self';|font-src 'self'; connect-src $(APP_STAGING_CSP_$(APP));|" $(APP_TMP)/index.html
 	@for v in $(APP_STAGING_ENV_$(APP)) ; do \
 		./result-tool-gnused/bin/sed -i "s|<body|<body data-$$v|" $(APP_TMP)/index.html ; \
 	done
@@ -299,6 +308,7 @@ deploy-production-S3: \
 			build-app-$(APP)
 	$(eval APP_TMP := $(shell ./result-tool-coreutils/bin/mktemp -d --tmpdir=$$PWD/tmp $(APP).XXXXX))
 	./result-tool-coreutils/bin/cp -rf result-$(APP)/* $(APP_TMP)
+	./result-tool-gnused/bin/sed -i "s|font-src 'self';|font-src 'self'; connect-src $(APP_PRODUCTION_CSP_$(APP));|" $(APP_TMP)/index.html
 	@for v in $(APP_PRODUCTION_ENV_$(APP)) ; do \
 		./result-tool-gnused/bin/sed -i "s|<body|<body data-$$v|" $(APP_TMP)/index.html ; \
 	done

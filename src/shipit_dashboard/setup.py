@@ -27,7 +27,6 @@ setup(
     ],
     install_requires=[
         'releng_common[log,api,cors,auth,db]',
-        'libmozdata',
     ],
     packages=find_packages(),
     include_package_data=True,

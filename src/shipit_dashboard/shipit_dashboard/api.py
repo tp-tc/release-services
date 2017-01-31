@@ -6,7 +6,6 @@ from __future__ import absolute_import
 
 import pickle
 from flask import abort, request
-import sqlalchemy as sa
 from sqlalchemy.orm.exc import NoResultFound
 from releng_common.auth import auth
 from releng_common.db import db
@@ -93,16 +92,28 @@ def update_bug(bugzilla_id):
             # Build flags map
             source = update['changes'].get('flagtypes.name', {})
             removed, added = source['removed'].split(', '), source['added'].split(', ')  # noqa
-            flags_map = dict(zip(removed, added))
+            flags_map = zip(removed, added)
 
-            # Update attachment flag status
-            for a in payload['bug']['attachments']:
-                if a['id'] != update['bugzilla_id']:
-                    continue
-                for flag in a['flags']:
-                    name = flag['name'] + flag['status']
-                    if name in flags_map:
-                        flag['status'] = flags_map[name][len(flag['name']):]
+            def _split(fullkey):
+                # From 'approval-mozilla-beta+' to
+                # ('beta +', 'approval-mozilla-beta', '+')
+                assert fullkey.startswith('approval-mozilla-'), \
+                    '{} is not approval-mozilla-XXX'.format(fullkey)
+                out = fullkey[17:]
+                return out[:-1] + ' ' + out[-1], fullkey[:-1], fullkey[-1]
+
+            # Update versions directly
+            versions = payload.get('versions', {})
+            for before, after in flags_map:
+                before, _, _ = _split(before)
+                after, name, status = _split(after)
+                if before in versions:
+                    versions[after] = versions[before]
+                    versions[after].update({
+                        'name': name,
+                        'status': status,
+                    })
+                    del versions[before]
 
         else:
             raise Exception('Invalid update target {}'.format(update['target']))  # noqa
@@ -127,8 +138,8 @@ def create_bug():
         raise Exception('Missing bugzilla id')
     try:
         bug = BugResult.query.filter_by(bugzilla_id=bugzilla_id).one()
-        analysis_existing = bug.analysis.values('analysis_id')
-    except:
+        analysis_existing = [a[0] for a in bug.analysis.values('analysis_id')]
+    except Exception:
         bug = BugResult(bugzilla_id=bugzilla_id)
         analysis_existing = []
 
@@ -140,15 +151,25 @@ def create_bug():
     bug.payload = pickle.dumps(payload, 2)
     bug.payload_hash = payload_hash
 
-    # Attach bug to its analysis
-    # Load all analysis
+    # Sync analysis in both ways:
+    # * adding new bugs
+    # * removing deprecated bugs
     analysis_needed = request.json.get('analysis', [])
+    add = set(analysis_needed).difference(analysis_existing)
     analysis = BugAnalysis.query \
-        .filter(BugAnalysis.id.in_(analysis_needed)) \
-        .filter(sa.not_(BugAnalysis.id.in_(analysis_existing))) \
+        .filter(BugAnalysis.id.in_(add)) \
         .all()
     for a in analysis:
+        logger.debug('Adding new bug', analysis=a.id, bug=bug.bugzilla_id)
         a.bugs.append(bug)
+
+    rm = set(analysis_existing).difference(analysis_needed)
+    analysis = BugAnalysis.query \
+        .filter(BugAnalysis.id.in_(rm)) \
+        .all()
+    for a in analysis:
+        logger.debug('Removing old bug', analysis=a.id, bug=bug.bugzilla_id)
+        a.bugs.remove(bug)
 
     # Save all changes
     db.session.add(bug)

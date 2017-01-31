@@ -66,9 +66,9 @@ viewRecentChange plural recentChange =
     let
         treeLabel =
             if plural then
-                "trees"
+                "trees "
             else
-                "tree"
+                "tree "
 
         recentChangeReason =
             let
@@ -79,6 +79,21 @@ viewRecentChange plural recentChange =
                     []
                 else
                     (text " with reason: ") :: words
+
+        parseTimestamp timestamp =
+            timestamp
+                |> String.split "T"
+                |> List.drop 1
+                |> List.take 1
+                |> List.append
+                    (timestamp
+                        |> String.split "T"
+                        |> List.take 1
+                    )
+                |> String.join " "
+                |> String.split "."
+                |> List.head
+                |> Maybe.withDefault timestamp
     in
         div
             [ class "list-group-item" ]
@@ -101,9 +116,8 @@ viewRecentChange plural recentChange =
                 []
                 (List.append
                     [ text "At "
-                    , text recentChange.when
-                    , text " UTC, "
-                    , text (TaskclusterLogin.shortUsername recentChange.who)
+                    , text (parseTimestamp recentChange.when)
+                    , text (" " ++ (TaskclusterLogin.shortUsername recentChange.who))
                     , text " changed "
                     , text treeLabel
                     , em [] [ text (String.join ", " recentChange.trees) ]
@@ -123,21 +137,28 @@ viewRecentChanges :
 viewRecentChanges recentChanges =
     case recentChanges of
         RemoteData.Success data ->
-            []
-                |> App.Utils.appendItem (h2 [] [ text "Recent Changes" ])
-                |> App.Utils.appendItems
-                    (List.map
-                        (viewRecentChange (List.length data > 1))
-                        data
-                    )
-                |> (\x ->
-                        [ div
-                            [ id "treestatus-recentchanges"
-                            , class "list-group"
+            let
+                title =
+                    if List.isEmpty data then
+                        []
+                    else
+                        [ h2 [] [ text "Recent Changes" ] ]
+            in
+                []
+                    |> App.Utils.appendItems title
+                    |> App.Utils.appendItems
+                        (List.map
+                            (viewRecentChange (List.length data > 1))
+                            data
+                        )
+                    |> (\x ->
+                            [ div
+                                [ id "treestatus-recentchanges"
+                                , class "list-group"
+                                ]
+                                x
                             ]
-                            x
-                        ]
-                   )
+                       )
 
         _ ->
             []
@@ -163,12 +184,8 @@ viewTreesItem scopes treesSelected tree =
         treeTagClass =
             "float-xs-right tag tag-" ++ (treeStatusLevel tree.status)
 
-        hasScopes =
-            hasScope "update_trees" scopes
-                || hasScope "kill_tree" scopes
-
         checkboxItem =
-            if hasScopes then
+            if hasScope "trees/update" scopes || hasScope "trees/delete" scopes then
                 [ label
                     [ class "custom-control custom-checkbox" ]
                     [ input
@@ -187,7 +204,7 @@ viewTreesItem scopes treesSelected tree =
                 []
 
         itemClass =
-            if hasScopes then
+            if hasScope "trees/update" scopes || hasScope "trees/delete" scopes then
                 "list-group-item list-group-item-with-checkbox"
             else
                 "list-group-item"
@@ -313,7 +330,7 @@ viewButtons route scopes model =
                     )
                 |> appendIf
                     ((route == App.TreeStatus.Types.ShowTreesRoute || treeRoute /= Nothing)
-                        && hasScope "trees/change" scopes
+                        && hasScope "trees/update" scopes
                     )
                     (button
                         (if List.isEmpty model.treesSelected then

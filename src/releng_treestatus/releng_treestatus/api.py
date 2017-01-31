@@ -82,7 +82,7 @@ def get_trees2():
     return [i for i in get_trees().values()]
 
 
-@auth.require_scopes(['project:releng:treestatus/trees/change'])
+@auth.require_scopes(['project:releng:treestatus/trees/update'])
 def update_trees(body):
     session = current_app.db.session
     trees = [session.query(Tree).get(t) for t in body['trees']]
@@ -93,7 +93,7 @@ def update_trees(body):
             and _get(body, 'status') == 'closed':
         raise BadRequest("tags are required when closing a tree")
 
-    if not _is_unset(body, 'remember'):
+    if not _is_unset(body, 'remember') and body['remember'] is True:
         if _is_unset(body, 'status') or _is_unset(body, 'reason'):
             raise BadRequest(
                 "must specify status and reason to remember the change")

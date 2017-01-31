@@ -110,8 +110,9 @@ in rec {
       , features ? { taskclusterProxy = true; }
       , artifacts ? {}
       , env ? {}
+      , cache ? {}
       }:
-      { inherit env image features maxRunTime command artifacts; };
+      { inherit env image features maxRunTime command artifacts cache; };
 
     mkTaskclusterTask =
       { extra ? {}
@@ -144,6 +145,8 @@ in rec {
       , taskCommand
       , taskArtifacts ? {}
       , taskEnv ? {}
+      , scopes ? []
+      , cache ? {}
       }:
       { inherit schedule expires deadline;
         metadata = { inherit name description owner emailOnError; };
@@ -154,7 +157,9 @@ in rec {
             command = taskCommand;
             artifacts = taskArtifacts;
             env = taskEnv;
+            cache = cache;
           };
+          scopes = scopes;
         });
       };
 
@@ -295,16 +300,19 @@ in rec {
     { name
     , version
     , src
-    , src_elm_common
     , src_path ? "src/${name}"
+    , csp ? "default-src 'none'; img-src 'self' data:; script-src 'self'; style-src 'self'; font-src 'self';"
     , node_modules
     , elm_packages
     , patchPhase ? ""
-    , postInstall ? null
+    , postInstall ? ""
+    , shellHook ? ""
     , staging ? true
     , production ? false
     }:
     let
+      scss_common = ./../../lib/scss_common;
+      elm_common = ./../../lib/elm_common;
       self = stdenv.mkDerivation {
         name = "${name}-${version}";
 
@@ -317,17 +325,28 @@ in rec {
         buildInputs = [ elmPackages.elm ] ++ (builtins.attrValues node_modules);
 
         patchPhase = ''
+          if [ -e src/scss ]; then
+            rm \
+              src/scss/fira \
+              src/scss/font-awesome \
+              src/scss/fonts.scss
+            ln -s ${scss_common}/fira         ./src/scss/
+            ln -s ${scss_common}/font-awesome ./src/scss/
+            ln -s ${scss_common}/fonts.scss   ./src/scss/
+          fi
+
           for item in ./*; do
             if [ -h $item ]; then
               rm -f $item
-              cp ${src_elm_common}/`basename $item` ./
+              cp ${elm_common}/`basename $item` ./
             fi
           done
+
           if [ -d src ]; then
             for item in ./src/*; do
               if [ -h $item ]; then
                 rm -f $item
-                cp ${src_elm_common}/`basename $item` ./src/
+                cp ${elm_common}/`basename $item` ./src/
               fi
             done
           fi
@@ -341,10 +360,12 @@ in rec {
           for item in ${builtins.concatStringsSep " " (builtins.attrValues node_modules)}; do
             ln -s $item/lib/node_modules/* ./node_modules
           done
+          export PATH=./node_modules/mozilla-neo/bin/:$PATH
+          export NODE_PATH=$PWD/node_modules/mozilla-neo/node_modules:$NODE_PATH
         '';
 
         buildPhase = ''
-          neo build --config webpack.config.js
+          ./node_modules/mozilla-neo/bin/neo build --config webpack.config.js
         '';
 
         doCheck = true;
@@ -370,6 +391,7 @@ in rec {
         installPhase = ''
           mkdir $out
           cp build/* $out/ -R
+          sed -i -e "s|<head>|<head>\n  <meta http-equiv=\"Content-Security-Policy\" content=\"${csp}\">|" $out/index.html
           runHook postInstall
         '';
 
@@ -377,7 +399,7 @@ in rec {
 
         shellHook = ''
           cd ${src_path}
-        '' + self.configurePhase;
+        '' + self.configurePhase + shellHook;
 
         passthru.taskclusterGithubTasks =
           map (branch: mkTaskclusterGithubTask { inherit name src_path branch; })
@@ -430,7 +452,10 @@ in rec {
           python.packages."gunicorn"
         ] ++ buildInputs 
           ++ optional (builtins.elem "db" releng_common.extras) releng_pkgs.postgresql;
-        propagatedBuildInputs = [releng_common] ++ propagatedBuildInputs;
+        propagatedBuildInputs = [
+          releng_common
+          releng_pkgs.pkgs.cacert
+        ] ++ propagatedBuildInputs;
 
         patchPhase = ''
           rm VERSION
@@ -520,6 +545,7 @@ in rec {
                 "FLASK_APP=${name}:app"
                 "LANG=en_US.UTF-8"
                 "LOCALE_ARCHIVE=${glibcLocales}/lib/locale/locale-archive"
+                "SSL_CERT_FILE=${releng_pkgs.pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
               ];
               Cmd = [
                 "newrelic-admin" "run-program" "gunicorn" "${name}:app" "--log-file" "-"
