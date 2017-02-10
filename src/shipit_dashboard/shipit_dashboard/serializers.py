@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from shipit_dashboard.models import (
-    BugResult, BugContributor, BugAnalysis, Contributor
+    BugResult, BugContributor, BugAnalysis, Contributor, PatchStatus
 )
 from shipit_dashboard import SCOPES_ADMIN
 from flask_login import current_user
@@ -87,8 +87,25 @@ def serialize_bug(bug):
     tracking_base_flag = 'cf_tracking_'
 
     def _filter_flags(base):
-        out = [(k.replace(base, '', 1), v) for k, v in bug_data.items() if k.startswith(base + 'firefox')]  # noqa
-        return dict(out)
+        return dict([
+            (k.replace(base, '', 1), v)
+            for k, v in bug_data.items()
+            if k.startswith(base + 'firefox')
+        ])
+
+    def _generic_flags():
+        # Always use qe-verify (set as "empty")
+        flags = {
+            'qe-verify': '---',
+        }
+
+        # Use flags from bug data
+        flags.update(dict([
+            (flag['name'], flag['status'])
+            for flag in bug_data['flags']
+        ]))
+
+        return flags
 
     return {
         # Base
@@ -97,8 +114,14 @@ def serialize_bug(bug):
         'url': payload.get('url', 'https://bugzil.la/{}'.format(bug.bugzilla_id)),  # noqa
         'summary': bug_data['summary'],
         'keywords': bug_data['keywords'],
+        'component': bug_data['component'],
+        'product': bug_data['product'],
+        'status': bug_data['status'],
+
+        # Flags
         'flags_status': _filter_flags(status_base_flag),
         'flags_tracking': _filter_flags(tracking_base_flag),
+        'flags_generic': _generic_flags(),
 
         # Contributor
         'contributors': [
@@ -136,6 +159,7 @@ def serialize_analysis(analysis, bugs_nb, full=True):
     out = {
         'id': analysis.id,
         'name': analysis.name,
+        'version': analysis.version,
         'count': bugs_nb,
         'parameters': analysis.parameters,
     }
@@ -147,3 +171,18 @@ def serialize_analysis(analysis, bugs_nb, full=True):
         out['bugs'] = []
 
     return out
+
+
+def serialize_patch_status(patch_status):
+    """
+    Helper to serialize a patch status
+    """
+    assert isinstance(patch_status, PatchStatus)
+
+    return {
+        'revision': patch_status.revision,
+        'revision_parent': patch_status.revision_parent,
+        'branch': patch_status.branch,
+        'merged': patch_status.merged,
+        'created': patch_status.created,
+    }

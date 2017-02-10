@@ -29,7 +29,8 @@ class BugAnalysis(db.Model):
     __tablename__ = 'shipit_dashboard_analysis'
 
     id = sa.Column(sa.Integer, primary_key=True)
-    name = sa.Column(sa.String(80))
+    name = sa.Column(sa.String(80), nullable=False)
+    version = sa.Column(sa.Integer, nullable=False)
     parameters = sa.Column(sa.Text())
     created = sa.Column(sa.DateTime, default=datetime.datetime.utcnow)
 
@@ -39,7 +40,7 @@ class BugAnalysis(db.Model):
         self.name = name
 
     def __repr__(self):
-        return 'AnalysisTemplate {}'.format(self.name)
+        return 'Analysis {} {}'.format(self.name, self.version)
 
     @staticmethod
     def with_bugs():
@@ -136,3 +137,32 @@ class BugContributor(db.Model):
 
     bug = db.relationship(BugResult, backref="contributors")
     contributor = db.relationship(Contributor, backref="bugs")
+
+
+class PatchStatus(db.Model):
+    """
+    Patch merge status at a specific time
+    """
+    __tablename__ = 'shipit_dashboard_patch_status'
+    __table_args__ = (
+        sa.UniqueConstraint('bug_id', 'revision', 'revision_parent', 'branch', name='uniq_patch_status'),  # noqa
+    )
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    bug_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey('shipit_dashboard_bug.id'),
+        nullable=False
+    )
+
+    revision = sa.Column(sa.String(50), nullable=False)
+    revision_parent = sa.Column(sa.String(50), nullable=False)
+    branch = sa.Column(sa.String(50), nullable=False)
+    created = sa.Column(
+        sa.DateTime,
+        default=datetime.datetime.utcnow,
+        nullable=False
+    )
+    merged = sa.Column(sa.Boolean, default=False, nullable=False)
+
+    bug = db.relationship(BugResult, backref="patch_status")

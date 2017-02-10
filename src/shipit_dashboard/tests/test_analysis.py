@@ -38,6 +38,7 @@ def test_fetch_analysis(client, bugs, header_user):
     assert resp.status_code == 200
     analysis = json.loads(resp.data.decode('utf-8'))
     assert analysis['id'] == 1
+    assert analysis['version'] == 1
     assert analysis['name'] == 'Analysis Test A'
     assert analysis['parameters'] == 'bugzilla=test'
     assert len(analysis['bugs']) == 3
@@ -83,6 +84,57 @@ def test_fetch_analysis(client, bugs, header_user):
     }
 
 
+def test_update_analysis(client, bugs, header_bot, header_user):
+    """
+    Update analysis version
+    """
+    url = '/analysis/1'
+
+    # Check analysis has version 1 initially
+    resp = client.get(url, headers=[
+        ('Authorization', header_bot),
+    ])
+    assert resp.status_code == 200
+    analysis = json.loads(resp.data.decode('utf-8'))
+    assert analysis['id'] == 1
+    assert analysis['version'] == 1
+    assert analysis['name'] == 'Analysis Test A'
+
+    # Update to version 2
+    data = {
+        'version': 2,
+    }
+
+    # Only bot has access to the update endpoint
+    resp = client.put(url, data=json.dumps(data), headers=[
+        ('Authorization', header_user),
+        ('Content-Type', 'application/json'),
+    ])
+    assert resp.status_code == 401
+
+    # Update as bot
+    resp = client.put(url, data=json.dumps(data), headers=[
+        ('Authorization', header_bot),
+        ('Content-Type', 'application/json'),
+    ])
+    assert resp.status_code == 200
+    analysis = json.loads(resp.data.decode('utf-8'))
+    assert analysis['id'] == 1
+    assert analysis['version'] == 2
+    assert analysis['name'] == 'Analysis Test A'
+
+    # Check analysis has version 2 now
+    # Accessible by user on GET
+    resp = client.get(url, headers=[
+        ('Authorization', header_user),
+    ])
+    assert resp.status_code == 200
+    analysis = json.loads(resp.data.decode('utf-8'))
+    assert analysis['id'] == 1
+    assert analysis['version'] == 2
+    assert analysis['name'] == 'Analysis Test A'
+
+
 def test_create_bug(client, bugs, header_bot):
     """
     Create a new bug in analysis
@@ -111,6 +163,9 @@ def test_create_bug(client, bugs, header_bot):
     assert bug_created == {
         'bugzilla_id': 12345,
         'changes_size': 0,
+        'component': 'Reading List',
+        'product': 'Firefox',
+        'status': 'RESOLVED',
         'contributors': [
             {
                 'id': 4,
@@ -135,6 +190,8 @@ def test_create_bug(client, bugs, header_bot):
                            'firefox_esr31': '---',
                            'firefox_esr38': '---',
                            'firefox_relnote': '---'},
+        'flags_generic': {'firefox-backlog': '+',
+                          'qe-verify': '---'},
         'id': 4,
         'keywords': ['test'],
         'landings': {'aurora': 'Fri, 10 Apr 2015 17:06:41 GMT',
@@ -240,12 +297,16 @@ def test_update_bug_flags(client, bugs, header_user):
         'bugzilla_id': 1139560,
         'changes': {
             'cf_status_firefox38': {
-                'remoced': 'affected',
+                'removed': 'affected',
                 'added': 'fixed',
             },
             'cf_tracking_firefox40': {
-                'remoced': '---',
+                'removed': '---',
                 'added': '+',
+            },
+            'flagtypes.name': {
+                'removed': '',
+                'added': 'qe-verify+',
             },
         }
     }]
@@ -255,6 +316,10 @@ def test_update_bug_flags(client, bugs, header_user):
     ])
     assert resp.status_code == 200
     bug = json.loads(resp.data.decode('utf-8'))
+    assert bug['flags_generic'] == {
+        'in-testsuite': '+',
+        'qe-verify': '+',
+    }
     assert bug['flags_status'] == {
         'firefox37': '---',
         'firefox38': 'fixed',

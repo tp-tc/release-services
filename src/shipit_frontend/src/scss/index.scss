@@ -70,6 +70,14 @@ nav {
       color: #5bc0de;
       font-weight: bold;
     }
+
+    // analysis links
+    .analysis {
+      span.name {
+        text-transform: capitalize;
+        margin-right: 3px;
+      }
+    }
   }
 }
 
@@ -85,7 +93,12 @@ div.bugs {
       font-weight: bold;
     }
 
+    div.columns {
+      margin-top: 12px;
+    }
+
     p.summary, p.actions {
+      margin-bottom: 2px;
       * {
         margin-right: 3px;
         display: inline-block;
@@ -183,6 +196,8 @@ div.bugs {
 
     div.flags {
       ul {
+        padding-left: 0;
+        list-style-type: none;
         li {
           * {
             margin-right: 4px;
