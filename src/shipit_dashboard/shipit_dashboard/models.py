@@ -100,6 +100,7 @@ class BugResult(db.Model):
         """
         # Delete links, avoid StaleDataError
         db.engine.execute(sa.text('delete from shipit_dashboard_analysis_bugs where bug_id = :bug_id'), bug_id=self.id)  # noqa
+        db.engine.execute(sa.text('delete from shipit_dashboard_patch_status where bug_id = :bug_id'), bug_id=self.id)  # noqa
 
         # Delete the bug
         db.session.delete(self)
@@ -158,6 +159,7 @@ class PatchStatus(db.Model):
     revision = sa.Column(sa.String(50), nullable=False)
     revision_parent = sa.Column(sa.String(50), nullable=False)
     branch = sa.Column(sa.String(50), nullable=False)
+    message = sa.Column(sa.Text())
     created = sa.Column(
         sa.DateTime,
         default=datetime.datetime.utcnow,
