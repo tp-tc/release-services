@@ -6,6 +6,7 @@ from __future__ import absolute_import
 
 import datetime
 import json
+import logging
 import pytz
 import sqlalchemy as sa
 
@@ -15,6 +16,7 @@ from werkzeug.exceptions import NotFound, BadRequest
 
 from releng_common.cache import cache
 from releng_common.auth import auth
+from releng_treestatus.__init__ import app
 from releng_treestatus.models import (
     Tree, StatusChange, StatusChangeTree, Log
 )
@@ -22,6 +24,8 @@ from releng_treestatus.models import (
 
 UNSET = object()
 TREE_SUMMARY_LOG_LIMIT = 5
+
+log = logging.getLogger(__name__)
 
 
 def _get(item, field, default=UNSET):
@@ -34,6 +38,35 @@ def _is_unset(item, field):
 
 def _now():
     return datetime.datetime.utcnow().replace(tzinfo=pytz.UTC)
+
+
+def _notify_status_change(trees_changes, tags=[]):
+    if app.config.get('PULSE_TREESTATUS_ENABLE'):
+        routing_key_pattern = 'tree/{0}/status_change'
+        exchange = app.config.get('PULSE_TREESTATUS_EXCHANGE')
+
+        for tree_change in trees_changes:
+            tree, status_from, status_to = tree_change
+
+            payload = {'status_from': status_from,
+                       'status_to': status_to,
+                       'tree': tree.to_dict(),
+                       'tags': tags}
+            routing_key = routing_key_pattern.format(tree.tree)
+
+            log.info(
+                "Sending pulse to {} for tree: {}".format(
+                    exchange,
+                    tree.tree,
+                ))
+
+            try:
+                app.pulse.publish(exchange, routing_key, payload)
+            except Exception as e:
+                import traceback
+                msg = "Can't send notification to pulse."
+                trace = traceback.format_exc()
+                log.error("{0}\nException:{1}\nTraceback: {2}".format(msg, e, trace))  # noqa
 
 
 def _update_tree_status(session, tree, status=None, reason=None, tags=[],
@@ -117,14 +150,23 @@ def update_trees(body):
     new_motd = _get(body, 'message_of_the_day', None)
     new_tags = _get(body, 'tags', [])
 
+    trees_status_change = []
+
     for tree in trees:
+        current_status = tree.status
         _update_tree_status(session, tree,
                             status=new_status,
                             reason=new_reason,
                             message_of_the_day=new_motd,
-                            tags=new_tags)
+                            tags=new_tags,
+                            )
+        if new_status and current_status != new_status:
+            trees_status_change.append((tree, current_status, new_status))
 
     session.commit()
+
+    _notify_status_change(trees_status_change, new_tags)
+
     return None, 204
 
 
@@ -216,20 +258,32 @@ def _revert_change(id, revert=None):
     if not ch:
         raise NotFound
 
+    trees_status_change = []
+
     if revert:
         for chtree in ch.trees:
+
             last_state = json.loads(chtree.last_state)
             tree = Tree.query.get(chtree.tree)
             if tree is None:
                 # if there's no tree to update, don't worry about it
                 pass
-            _update_tree_status(
-                session, tree,
-                status=last_state['status'],
-                reason=last_state['reason'])
+
+            current_status = tree.status
+            _update_tree_status(session, tree,
+                                status=last_state['status'],
+                                reason=last_state['reason'],
+                                )
+
+            if last_state['status'] and current_status != last_state['status']:
+                trees_status_change.append(
+                    (tree, current_status, last_state['status']))
 
     session.delete(ch)
     session.commit()
+
+    _notify_status_change(trees_status_change)
+
     return None, 204
 
 

@@ -30,6 +30,7 @@ in python.mkDerivation {
       ]
       ++ optionals (builtins.elem "security" extras) [ python.packages."flask-talisman" ]
       ++ optionals (builtins.elem "cors" extras) [ python.packages."Flask-Cors" ]
+      ++ optionals (builtins.elem "pulse" extras) [ python.packages."kombu" ]
       ++ optionals (builtins.elem "db" extras) [
         python.packages."psycopg2"
         python.packages."Flask-SQLAlchemy"

@@ -124,11 +124,15 @@ let
       mkTaskclusterHook {
         name = "Shipit bot updating bug analysis";
         owner = "babadie@mozilla.com";
-        schedule = [ "0 * * * * *" ];  # every hours
+        schedule = [ "0 0 * * * *" ];  # every hours
         taskImage = self.docker;
         scopes = [
           # Used by taskclusterProxy
           ("secrets:get:" + secretsKey)
+
+          # Email notifications
+          "notify:email:babadie@mozilla.com"
+          "notify:email:sledru@mozilla.com"
 
           # Used by cache
           ("docker-worker:cache:" + cacheKey)

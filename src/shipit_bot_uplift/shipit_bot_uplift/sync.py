@@ -52,6 +52,8 @@ class MergeTest(object):
         Store a new patch status on backend
         """
         assert isinstance(merge_status, bool)
+        assert isinstance(revision_parent, str)
+        assert isinstance(message, str)
         self.revision_parent = revision_parent
         self.status = merge_status
         self.message = message
@@ -69,6 +71,9 @@ class MergeTest(object):
             logger.info('Created new patch status', **data)
         except Exception as err:
             logger.error('Failed to create patch status', err=err)
+            return False
+
+        return True
 
 
 class BugSync(object):
@@ -359,8 +364,10 @@ class BotRemote(Bot):
     """
     def __init__(self, secrets_path, client_id=None, access_token=None):
         # Start by loading secrets from Taskcluster
-        tc_options = self.build_tc_options(client_id, access_token)
-        secrets = self.load_secrets(tc_options, secrets_path)
+        secrets = self.load_secrets(
+            self.build_tc_options('secrets/v1', client_id, access_token),
+            secrets_path
+        )
 
         # Setup credentials for Shipit api
         api_client.setup(
@@ -376,12 +383,13 @@ class BotRemote(Bot):
         self.sync = {}  # init
 
         # Init report
-        self.report = Report(tc_options, [
-            # TODO: use secrets
+        options = self.build_tc_options('notify/v1', client_id, access_token)
+        self.report = Report(options, [
             'babadie@mozilla.com',
+            'sledru@mozilla.com',
         ])
 
-    def build_tc_options(self, client_id=None, access_token=None):
+    def build_tc_options(self, service_endpoint, client_id=None, access_token=None):  # noqa
         """
         Build Taskcluster credentials options
         """
@@ -404,7 +412,10 @@ class BotRemote(Bot):
 
             # Load secrets from TC task context
             # with taskclusterProxy
-            base_url = 'http://{}/secrets/v1'.format(hosts['taskcluster'])
+            base_url = 'http://{}/{}'.format(
+                hosts['taskcluster'],
+                service_endpoint
+            )
             logger.info('Taskcluster Proxy enabled', url=base_url)
             tc_options = {
                 'baseUrl': base_url
@@ -441,6 +452,9 @@ class BotRemote(Bot):
         """
         assert self.repository is not None, \
             'Missing mozilla repository'
+
+        # Update HG central to get new patches revisions
+        self.repository.checkout(b'central')
 
         # Get official mozilla release versions
         current_versions = versions.get(True)
@@ -490,6 +504,7 @@ class BotRemote(Bot):
 
         # Sort merge tests by branches
         logger.info('Running merge tests', nb=len(merge_tests))
+        merge_tests = sorted(merge_tests, key=lambda x: x.branch)
         groups = itertools.groupby(merge_tests, lambda x: x.branch)
         for branch, tests in groups:
 
@@ -497,7 +512,7 @@ class BotRemote(Bot):
             parent = self.repository.checkout(branch)
 
             # Run all the merge tests for this revision
-            for merge_test in merge_tests:
+            for merge_test in tests:
                 self.run_merge_test(merge_test, parent)
 
         # Send report
@@ -531,6 +546,8 @@ class BotRemote(Bot):
         Try to merge a patch on current repository branch
         """
         assert isinstance(merge_test, MergeTest)
+        assert merge_test.status is None, \
+            'Already ran this merge test.'
 
         if merge_test.last_status and parent == merge_test.last_status['revision_parent']: # noqa
             logger.info('Skiping merge test : same parent', revision=merge_test.revision, branch=merge_test.branch, parent=parent)  # noqa
@@ -538,13 +555,13 @@ class BotRemote(Bot):
 
         # Run the merge test
         merged, message = self.repository.is_mergeable(merge_test.revision)
-        merge_test.update_result(parent, merged, message)
+        updated = merge_test.update_result(parent, merged, message)
 
         # Always cleanup
         self.repository.cleanup(parent)
 
         # Save invalid merge in report
-        if not merged:
+        if updated and not merged:
             self.report.add_invalid_merge(merge_test)
 
     def delete_bug(self, sync):

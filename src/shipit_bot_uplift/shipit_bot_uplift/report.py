@@ -1,5 +1,7 @@
 from shipit_bot_uplift import log
 import taskcluster
+import operator
+import itertools
 
 
 logger = log.get_logger('shipit_bot')
@@ -14,15 +16,13 @@ class Report(object):
     def __init__(self, tc_options, emails):
         self.notify = taskcluster.Notify(tc_options)
         self.emails = emails
-        self.merges = {}
+        self.merges = set()
 
     def add_invalid_merge(self, merge_test):
         """
         Mark a bug with an invalid merged test
         """
-        if merge_test.bugzilla_id not in self.merges:
-            self.merges[merge_test.bugzilla_id] = []
-        self.merges[merge_test.bugzilla_id].append(merge_test)
+        self.merges.add(merge_test)
 
     def send(self):
         """
@@ -30,20 +30,33 @@ class Report(object):
         """
         # Skip sending when there are no failed merges
         if not self.merges:
+            logger.info('Nothing to report.')
             return
 
+        def _str(x):
+            return isinstance(x, bytes) and x.decode('utf-8') or x
+
         # Build markdown output
+        # Sorting failed merge tests by bugzilla id & branch
         subject = 'Uplift bot detected some merge failures'
         mail = [
             '# Failed automated merge test',
             ''
         ]
-        for bz_id, failures in self.merges.items():
-            mail.append('## Bug [{0}](https://bugzil.la/{0})\n'.format(bz_id))
-            mail += [
-                ' * Merge failed on branch {}@{} for commit {} : {}'.format(merge_test.branch, merge_test.revision_parent, merge_test.revision, merge_test.message)  # noqa
-                for merge_test in failures
-            ]
+        cmp_func = operator.attrgetter('bugzilla_id', 'branch')
+        merges = sorted(self.merges, key=cmp_func)
+        merges = itertools.groupby(merges, key=cmp_func)
+        for keys, failures in merges:
+            bz_id, branch = keys
+            mail.append('## Bug [{0}](https://bugzil.la/{0}) - Uplift to {1}\n'.format(bz_id, _str(branch)))  # noqa
+            for merge_test in failures:
+                mail += [
+                    ' * Merge failed for commit `{}` (parent `{}`)'.format(
+                        _str(merge_test.revision),
+                        _str(merge_test.revision_parent)
+                    ),
+                    '```{}```'.format(merge_test.message)
+                ]
             mail.append('')  # newline
         mail_md = '\n'.join(mail)
 
