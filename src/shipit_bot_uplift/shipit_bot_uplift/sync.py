@@ -186,8 +186,9 @@ class BugSync(object):
 
         return [
             _link_status(revision, analysis)
-            for revision in self.analysis['patches'].keys()
+            for revision, patch in self.analysis['patches'].items()
             for analysis in self.on_bugzilla
+            if patch['source'] == 'mercurial'
         ]
 
     def build_payload(self, bugzilla_url):
@@ -384,10 +385,8 @@ class BotRemote(Bot):
 
         # Init report
         options = self.build_tc_options('notify/v1', client_id, access_token)
-        self.report = Report(options, [
-            'babadie@mozilla.com',
-            'sledru@mozilla.com',
-        ])
+        emails = secrets.get('UPLIFT_NOTIFICATIONS', ['babadie@mozilla.com'])
+        self.report = Report(options, emails)
 
     def build_tc_options(self, service_endpoint, client_id=None, access_token=None):  # noqa
         """

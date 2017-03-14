@@ -62,7 +62,7 @@ bugzillaBugAsLink text' =
                 )
 
 
-viewRecentChange plural recentChange =
+viewRecentChange scopes plural recentChange =
     let
         treeLabel =
             if plural then
@@ -95,46 +95,51 @@ viewRecentChange plural recentChange =
                 |> List.head
                 |> Maybe.withDefault timestamp
     in
-        div
-            [ class "list-group-item" ]
+        if hasScope "recent_changes/revert" scopes then
             [ div
-                [ class "float-xs-right btn-group" ]
-                [ button
-                    [ type' "button"
-                    , class "btn btn-sm btn-outline-success"
-                    , Utils.onClick (App.TreeStatus.Types.RevertChange recentChange.id)
+                [ class "list-group-item" ]
+                [ div
+                    [ class "float-xs-right btn-group" ]
+                    [ button
+                        [ type' "button"
+                        , class "btn btn-sm btn-outline-success"
+                        , Utils.onClick (App.TreeStatus.Types.RevertChange recentChange.id)
+                        ]
+                        [ text "Restore" ]
+                    , button
+                        [ type' "button"
+                        , class "btn btn-sm btn-outline-warning"
+                        , Utils.onClick (App.TreeStatus.Types.DiscardChange recentChange.id)
+                        ]
+                        [ text "Discard" ]
                     ]
-                    [ text "Restore" ]
-                , button
-                    [ type' "button"
-                    , class "btn btn-sm btn-outline-warning"
-                    , Utils.onClick (App.TreeStatus.Types.DiscardChange recentChange.id)
-                    ]
-                    [ text "Discard" ]
+                , div
+                    []
+                    (List.append
+                        [ text "At "
+                        , text (parseTimestamp recentChange.when)
+                        , text (" " ++ (TaskclusterLogin.shortUsername recentChange.who))
+                        , text " changed "
+                        , text treeLabel
+                        , em [] [ text (String.join ", " recentChange.trees) ]
+                        , text " to "
+                        , span
+                            [ class ("tag tag-" ++ (treeStatusLevel recentChange.status)) ]
+                            [ text recentChange.status ]
+                        ]
+                        recentChangeReason
+                    )
                 ]
-            , div
-                []
-                (List.append
-                    [ text "At "
-                    , text (parseTimestamp recentChange.when)
-                    , text (" " ++ (TaskclusterLogin.shortUsername recentChange.who))
-                    , text " changed "
-                    , text treeLabel
-                    , em [] [ text (String.join ", " recentChange.trees) ]
-                    , text " to "
-                    , span
-                        [ class ("tag tag-" ++ (treeStatusLevel recentChange.status)) ]
-                        [ text recentChange.status ]
-                    ]
-                    recentChangeReason
-                )
             ]
+        else
+            []
 
 
 viewRecentChanges :
-    RemoteData.WebData (List App.TreeStatus.Types.RecentChange)
+    List String
+    -> RemoteData.WebData (List App.TreeStatus.Types.RecentChange)
     -> List (Html App.TreeStatus.Types.Msg)
-viewRecentChanges recentChanges =
+viewRecentChanges scopes recentChanges =
     case recentChanges of
         RemoteData.Success data ->
             let
@@ -146,11 +151,11 @@ viewRecentChanges recentChanges =
             in
                 []
                     |> App.Utils.appendItems title
-                    |> App.Utils.appendItems
-                        (List.map
-                            (viewRecentChange (List.length data > 1))
+                    |> (\x ->
                             data
-                        )
+                                |> List.map (viewRecentChange scopes (List.length data > 1))
+                                |> List.concat
+                       )
                     |> (\x ->
                             [ div
                                 [ id "treestatus-recentchanges"
@@ -162,6 +167,10 @@ viewRecentChanges recentChanges =
 
         _ ->
             []
+
+
+
+-- TODO: viewTreesItem :
 
 
 viewTreesItem scopes treesSelected tree =

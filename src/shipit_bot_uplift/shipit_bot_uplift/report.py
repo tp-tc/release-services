@@ -17,6 +17,7 @@ class Report(object):
         self.notify = taskcluster.Notify(tc_options)
         self.emails = emails
         self.merges = set()
+        logger.info('Report notifications', emails=self.emails)
 
     def add_invalid_merge(self, merge_test):
         """
@@ -55,7 +56,7 @@ class Report(object):
                         _str(merge_test.revision),
                         _str(merge_test.revision_parent)
                     ),
-                    '```{}```'.format(merge_test.message)
+                    '```\n{}```'.format(merge_test.message)
                 ]
             mail.append('')  # newline
         mail_md = '\n'.join(mail)
