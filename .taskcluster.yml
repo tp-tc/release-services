@@ -7,17 +7,17 @@ metadata:
   source: "{{ event.head.repo.url }}"
 tasks:
 
-# --- elm_common_example (master) ---
+# --- frontend-common-example (master) ---
 
   - metadata:
-      name: "elm_common_example"
-      description: "Test, build and deploy elm_common_example"
+      name: "frontend-common-example"
+      description: "Test, build and deploy frontend-common-example"
       owner: "{{ event.head.user.email }}"
-      source: "https://github.com/mozilla-releng/services/tree/master/lib/elm_common/example"
+      source: "https://github.com/mozilla-releng/services/tree/master/lib/frontend_common/example"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:master
-      - hooks:modify-hook:project-releng/services-master-elm_common_example-*
-      - assume:hook-id:project-releng/services-master-elm_common_example-*
+      - hooks:modify-hook:project-releng/services-master-frontend-common-example-*
+      - assume:hook-id:project-releng/services-master-frontend-common-example-*
     extra:
       github:
         env: true
@@ -34,7 +34,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "elm_common_example"
+        APP: "frontend-common-example"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:master"
       command:
         - "/bin/bash"
@@ -42,17 +42,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- elm_common_example (staging) ---
+# --- frontend-common-example (staging) ---
 
   - metadata:
-      name: "elm_common_example"
-      description: "Test, build and deploy elm_common_example"
+      name: "frontend-common-example"
+      description: "Test, build and deploy frontend-common-example"
       owner: "{{ event.head.user.email }}"
-      source: "https://github.com/mozilla-releng/services/tree/staging/lib/elm_common/example"
+      source: "https://github.com/mozilla-releng/services/tree/staging/lib/frontend_common/example"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:staging
-      - hooks:modify-hook:project-releng/services-staging-elm_common_example-*
-      - assume:hook-id:project-releng/services-staging-elm_common_example-*
+      - hooks:modify-hook:project-releng/services-staging-frontend-common-example-*
+      - assume:hook-id:project-releng/services-staging-frontend-common-example-*
     extra:
       github:
         env: true
@@ -68,7 +68,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "elm_common_example"
+        APP: "frontend-common-example"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:staging"
       command:
         - "/bin/bash"
@@ -76,17 +76,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- releng_archiver (master) ---
+# --- releng-archiver (master) ---
 
   - metadata:
-      name: "releng_archiver"
-      description: "Test, build and deploy releng_archiver"
+      name: "releng-archiver"
+      description: "Test, build and deploy releng-archiver"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/master/src/releng_archiver"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:master
-      - hooks:modify-hook:project-releng/services-master-releng_archiver-*
-      - assume:hook-id:project-releng/services-master-releng_archiver-*
+      - hooks:modify-hook:project-releng/services-master-releng-archiver-*
+      - assume:hook-id:project-releng/services-master-releng-archiver-*
     extra:
       github:
         env: true
@@ -103,7 +103,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "releng_archiver"
+        APP: "releng-archiver"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:master"
       command:
         - "/bin/bash"
@@ -111,17 +111,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- releng_archiver (staging) ---
+# --- releng-archiver (staging) ---
 
   - metadata:
-      name: "releng_archiver"
-      description: "Test, build and deploy releng_archiver"
+      name: "releng-archiver"
+      description: "Test, build and deploy releng-archiver"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/staging/src/releng_archiver"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:staging
-      - hooks:modify-hook:project-releng/services-staging-releng_archiver-*
-      - assume:hook-id:project-releng/services-staging-releng_archiver-*
+      - hooks:modify-hook:project-releng/services-staging-releng-archiver-*
+      - assume:hook-id:project-releng/services-staging-releng-archiver-*
     extra:
       github:
         env: true
@@ -137,7 +137,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "releng_archiver"
+        APP: "releng-archiver"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:staging"
       command:
         - "/bin/bash"
@@ -145,17 +145,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- releng_clobberer (master) ---
+# --- releng-clobberer (master) ---
 
   - metadata:
-      name: "releng_clobberer"
-      description: "Test, build and deploy releng_clobberer"
+      name: "releng-clobberer"
+      description: "Test, build and deploy releng-clobberer"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/master/src/releng_clobberer"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:master
-      - hooks:modify-hook:project-releng/services-master-releng_clobberer-*
-      - assume:hook-id:project-releng/services-master-releng_clobberer-*
+      - hooks:modify-hook:project-releng/services-master-releng-clobberer-*
+      - assume:hook-id:project-releng/services-master-releng-clobberer-*
     extra:
       github:
         env: true
@@ -172,7 +172,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "releng_clobberer"
+        APP: "releng-clobberer"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:master"
       command:
         - "/bin/bash"
@@ -180,17 +180,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- releng_clobberer (staging) ---
+# --- releng-clobberer (staging) ---
 
   - metadata:
-      name: "releng_clobberer"
-      description: "Test, build and deploy releng_clobberer"
+      name: "releng-clobberer"
+      description: "Test, build and deploy releng-clobberer"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/staging/src/releng_clobberer"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:staging
-      - hooks:modify-hook:project-releng/services-staging-releng_clobberer-*
-      - assume:hook-id:project-releng/services-staging-releng_clobberer-*
+      - hooks:modify-hook:project-releng/services-staging-releng-clobberer-*
+      - assume:hook-id:project-releng/services-staging-releng-clobberer-*
     extra:
       github:
         env: true
@@ -206,7 +206,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "releng_clobberer"
+        APP: "releng-clobberer"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:staging"
       command:
         - "/bin/bash"
@@ -214,120 +214,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- releng_docs (master) ---
+# --- releng-frontend (master) ---
 
   - metadata:
-      name: "releng_docs"
-      description: "Test, build and deploy releng_docs"
-      owner: "{{ event.head.user.email }}"
-      source: "https://github.com/mozilla-releng/services/tree/master/src/releng_docs"
-    scopes:
-      - secrets:get:repo:github.com/mozilla-releng/services:branch:master
-      - hooks:modify-hook:project-releng/services-master-releng_docs-*
-      - assume:hook-id:project-releng/services-master-releng_docs-*
-    extra:
-      github:
-        env: true
-        events:
-          - pull_request.*
-          - push
-        branches:
-          - master
-    provisionerId: "{{ taskcluster.docker.provisionerId }}"
-    workerType: "{{ taskcluster.docker.workerType }}"
-    payload:
-      maxRunTime: 7200 # seconds (i.e. two hours)
-      image: "nixos/nix:1.11"
-      features:
-        taskclusterProxy: true
-      env:
-        APP: "releng_docs"
-        TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:master"
-      command:
-        - "/bin/bash"
-        - "-c"
-        - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
-
-
-# --- releng_docs (staging) ---
-
-  - metadata:
-      name: "releng_docs"
-      description: "Test, build and deploy releng_docs"
-      owner: "{{ event.head.user.email }}"
-      source: "https://github.com/mozilla-releng/services/tree/staging/src/releng_docs"
-    scopes:
-      - secrets:get:repo:github.com/mozilla-releng/services:branch:staging
-      - hooks:modify-hook:project-releng/services-staging-releng_docs-*
-      - assume:hook-id:project-releng/services-staging-releng_docs-*
-    extra:
-      github:
-        env: true
-        events:
-          - push
-        branches:
-          - staging
-    provisionerId: "{{ taskcluster.docker.provisionerId }}"
-    workerType: "{{ taskcluster.docker.workerType }}"
-    payload:
-      maxRunTime: 7200 # seconds (i.e. two hours)
-      image: "nixos/nix:1.11"
-      features:
-        taskclusterProxy: true
-      env:
-        APP: "releng_docs"
-        TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:staging"
-      command:
-        - "/bin/bash"
-        - "-c"
-        - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
-
-
-# --- releng_docs (production) ---
-
-  - metadata:
-      name: "releng_docs"
-      description: "Test, build and deploy releng_docs"
-      owner: "{{ event.head.user.email }}"
-      source: "https://github.com/mozilla-releng/services/tree/production/src/releng_docs"
-    scopes:
-      - secrets:get:repo:github.com/mozilla-releng/services:branch:production
-      - hooks:modify-hook:project-releng/services-production-releng_docs-*
-      - assume:hook-id:project-releng/services-production-releng_docs-*
-    extra:
-      github:
-        env: true
-        events:
-          - push
-        branches:
-          - production
-    provisionerId: "{{ taskcluster.docker.provisionerId }}"
-    workerType: "{{ taskcluster.docker.workerType }}"
-    payload:
-      maxRunTime: 7200 # seconds (i.e. two hours)
-      image: "nixos/nix:1.11"
-      features:
-        taskclusterProxy: true
-      env:
-        APP: "releng_docs"
-        TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:production"
-      command:
-        - "/bin/bash"
-        - "-c"
-        - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
-
-
-# --- releng_frontend (master) ---
-
-  - metadata:
-      name: "releng_frontend"
-      description: "Test, build and deploy releng_frontend"
+      name: "releng-frontend"
+      description: "Test, build and deploy releng-frontend"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/master/src/releng_frontend"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:master
-      - hooks:modify-hook:project-releng/services-master-releng_frontend-*
-      - assume:hook-id:project-releng/services-master-releng_frontend-*
+      - hooks:modify-hook:project-releng/services-master-releng-frontend-*
+      - assume:hook-id:project-releng/services-master-releng-frontend-*
     extra:
       github:
         env: true
@@ -344,7 +241,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "releng_frontend"
+        APP: "releng-frontend"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:master"
       command:
         - "/bin/bash"
@@ -352,17 +249,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- releng_frontend (staging) ---
+# --- releng-frontend (staging) ---
 
   - metadata:
-      name: "releng_frontend"
-      description: "Test, build and deploy releng_frontend"
+      name: "releng-frontend"
+      description: "Test, build and deploy releng-frontend"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/staging/src/releng_frontend"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:staging
-      - hooks:modify-hook:project-releng/services-staging-releng_frontend-*
-      - assume:hook-id:project-releng/services-staging-releng_frontend-*
+      - hooks:modify-hook:project-releng/services-staging-releng-frontend-*
+      - assume:hook-id:project-releng/services-staging-releng-frontend-*
     extra:
       github:
         env: true
@@ -378,7 +275,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "releng_frontend"
+        APP: "releng-frontend"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:staging"
       command:
         - "/bin/bash"
@@ -386,17 +283,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- releng_frontend (production) ---
+# --- releng-frontend (production) ---
 
   - metadata:
-      name: "releng_frontend"
-      description: "Test, build and deploy releng_frontend"
+      name: "releng-frontend"
+      description: "Test, build and deploy releng-frontend"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/production/src/releng_frontend"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:production
-      - hooks:modify-hook:project-releng/services-production-releng_frontend-*
-      - assume:hook-id:project-releng/services-production-releng_frontend-*
+      - hooks:modify-hook:project-releng/services-production-releng-frontend-*
+      - assume:hook-id:project-releng/services-production-releng-frontend-*
     extra:
       github:
         env: true
@@ -412,7 +309,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "releng_frontend"
+        APP: "releng-frontend"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:production"
       command:
         - "/bin/bash"
@@ -420,17 +317,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- releng_mapper (master) ---
+# --- releng-mapper (master) ---
 
   - metadata:
-      name: "releng_mapper"
-      description: "Test, build and deploy releng_mapper"
+      name: "releng-mapper"
+      description: "Test, build and deploy releng-mapper"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/master/src/releng_mapper"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:master
-      - hooks:modify-hook:project-releng/services-master-releng_mapper-*
-      - assume:hook-id:project-releng/services-master-releng_mapper-*
+      - hooks:modify-hook:project-releng/services-master-releng-mapper-*
+      - assume:hook-id:project-releng/services-master-releng-mapper-*
     extra:
       github:
         env: true
@@ -447,7 +344,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "releng_mapper"
+        APP: "releng-mapper"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:master"
       command:
         - "/bin/bash"
@@ -455,17 +352,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- releng_mapper (staging) ---
+# --- releng-mapper (staging) ---
 
   - metadata:
-      name: "releng_mapper"
-      description: "Test, build and deploy releng_mapper"
+      name: "releng-mapper"
+      description: "Test, build and deploy releng-mapper"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/staging/src/releng_mapper"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:staging
-      - hooks:modify-hook:project-releng/services-staging-releng_mapper-*
-      - assume:hook-id:project-releng/services-staging-releng_mapper-*
+      - hooks:modify-hook:project-releng/services-staging-releng-mapper-*
+      - assume:hook-id:project-releng/services-staging-releng-mapper-*
     extra:
       github:
         env: true
@@ -481,7 +378,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "releng_mapper"
+        APP: "releng-mapper"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:staging"
       command:
         - "/bin/bash"
@@ -489,17 +386,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- releng_tooltool (master) ---
+# --- releng-tooltool (master) ---
 
   - metadata:
-      name: "releng_tooltool"
-      description: "Test, build and deploy releng_tooltool"
+      name: "releng-tooltool"
+      description: "Test, build and deploy releng-tooltool"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/master/src/releng_tooltool"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:master
-      - hooks:modify-hook:project-releng/services-master-releng_tooltool-*
-      - assume:hook-id:project-releng/services-master-releng_tooltool-*
+      - hooks:modify-hook:project-releng/services-master-releng-tooltool-*
+      - assume:hook-id:project-releng/services-master-releng-tooltool-*
     extra:
       github:
         env: true
@@ -516,7 +413,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "releng_tooltool"
+        APP: "releng-tooltool"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:master"
       command:
         - "/bin/bash"
@@ -524,17 +421,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- releng_tooltool (staging) ---
+# --- releng-tooltool (staging) ---
 
   - metadata:
-      name: "releng_tooltool"
-      description: "Test, build and deploy releng_tooltool"
+      name: "releng-tooltool"
+      description: "Test, build and deploy releng-tooltool"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/staging/src/releng_tooltool"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:staging
-      - hooks:modify-hook:project-releng/services-staging-releng_tooltool-*
-      - assume:hook-id:project-releng/services-staging-releng_tooltool-*
+      - hooks:modify-hook:project-releng/services-staging-releng-tooltool-*
+      - assume:hook-id:project-releng/services-staging-releng-tooltool-*
     extra:
       github:
         env: true
@@ -550,7 +447,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "releng_tooltool"
+        APP: "releng-tooltool"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:staging"
       command:
         - "/bin/bash"
@@ -558,17 +455,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- releng_treestatus (master) ---
+# --- releng-treestatus (master) ---
 
   - metadata:
-      name: "releng_treestatus"
-      description: "Test, build and deploy releng_treestatus"
+      name: "releng-treestatus"
+      description: "Test, build and deploy releng-treestatus"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/master/src/releng_treestatus"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:master
-      - hooks:modify-hook:project-releng/services-master-releng_treestatus-*
-      - assume:hook-id:project-releng/services-master-releng_treestatus-*
+      - hooks:modify-hook:project-releng/services-master-releng-treestatus-*
+      - assume:hook-id:project-releng/services-master-releng-treestatus-*
     extra:
       github:
         env: true
@@ -585,7 +482,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "releng_treestatus"
+        APP: "releng-treestatus"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:master"
       command:
         - "/bin/bash"
@@ -593,17 +490,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- releng_treestatus (staging) ---
+# --- releng-treestatus (staging) ---
 
   - metadata:
-      name: "releng_treestatus"
-      description: "Test, build and deploy releng_treestatus"
+      name: "releng-treestatus"
+      description: "Test, build and deploy releng-treestatus"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/staging/src/releng_treestatus"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:staging
-      - hooks:modify-hook:project-releng/services-staging-releng_treestatus-*
-      - assume:hook-id:project-releng/services-staging-releng_treestatus-*
+      - hooks:modify-hook:project-releng/services-staging-releng-treestatus-*
+      - assume:hook-id:project-releng/services-staging-releng-treestatus-*
     extra:
       github:
         env: true
@@ -619,7 +516,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "releng_treestatus"
+        APP: "releng-treestatus"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:staging"
       command:
         - "/bin/bash"
@@ -627,17 +524,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- releng_treestatus (production) ---
+# --- releng-treestatus (production) ---
 
   - metadata:
-      name: "releng_treestatus"
-      description: "Test, build and deploy releng_treestatus"
+      name: "releng-treestatus"
+      description: "Test, build and deploy releng-treestatus"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/production/src/releng_treestatus"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:production
-      - hooks:modify-hook:project-releng/services-production-releng_treestatus-*
-      - assume:hook-id:project-releng/services-production-releng_treestatus-*
+      - hooks:modify-hook:project-releng/services-production-releng-treestatus-*
+      - assume:hook-id:project-releng/services-production-releng-treestatus-*
     extra:
       github:
         env: true
@@ -653,7 +550,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "releng_treestatus"
+        APP: "releng-treestatus"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:production"
       command:
         - "/bin/bash"
@@ -661,17 +558,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- shipit_bot_uplift (master) ---
+# --- shipit-bot-uplift (master) ---
 
   - metadata:
-      name: "shipit_bot_uplift"
-      description: "Test, build and deploy shipit_bot_uplift"
+      name: "shipit-bot-uplift"
+      description: "Test, build and deploy shipit-bot-uplift"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/master/src/shipit_bot_uplift"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:master
-      - hooks:modify-hook:project-releng/services-master-shipit_bot_uplift-*
-      - assume:hook-id:project-releng/services-master-shipit_bot_uplift-*
+      - hooks:modify-hook:project-releng/services-master-shipit-bot-uplift-*
+      - assume:hook-id:project-releng/services-master-shipit-bot-uplift-*
     extra:
       github:
         env: true
@@ -688,7 +585,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "shipit_bot_uplift"
+        APP: "shipit-bot-uplift"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:master"
       command:
         - "/bin/bash"
@@ -696,17 +593,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- shipit_bot_uplift (staging) ---
+# --- shipit-bot-uplift (staging) ---
 
   - metadata:
-      name: "shipit_bot_uplift"
-      description: "Test, build and deploy shipit_bot_uplift"
+      name: "shipit-bot-uplift"
+      description: "Test, build and deploy shipit-bot-uplift"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/staging/src/shipit_bot_uplift"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:staging
-      - hooks:modify-hook:project-releng/services-staging-shipit_bot_uplift-*
-      - assume:hook-id:project-releng/services-staging-shipit_bot_uplift-*
+      - hooks:modify-hook:project-releng/services-staging-shipit-bot-uplift-*
+      - assume:hook-id:project-releng/services-staging-shipit-bot-uplift-*
     extra:
       github:
         env: true
@@ -722,7 +619,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "shipit_bot_uplift"
+        APP: "shipit-bot-uplift"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:staging"
       command:
         - "/bin/bash"
@@ -730,17 +627,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- shipit_bot_uplift (production) ---
+# --- shipit-bot-uplift (production) ---
 
   - metadata:
-      name: "shipit_bot_uplift"
-      description: "Test, build and deploy shipit_bot_uplift"
+      name: "shipit-bot-uplift"
+      description: "Test, build and deploy shipit-bot-uplift"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/production/src/shipit_bot_uplift"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:production
-      - hooks:modify-hook:project-releng/services-production-shipit_bot_uplift-*
-      - assume:hook-id:project-releng/services-production-shipit_bot_uplift-*
+      - hooks:modify-hook:project-releng/services-production-shipit-bot-uplift-*
+      - assume:hook-id:project-releng/services-production-shipit-bot-uplift-*
     extra:
       github:
         env: true
@@ -756,7 +653,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "shipit_bot_uplift"
+        APP: "shipit-bot-uplift"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:production"
       command:
         - "/bin/bash"
@@ -764,120 +661,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- shipit_dashboard (master) ---
+# --- shipit-frontend (master) ---
 
   - metadata:
-      name: "shipit_dashboard"
-      description: "Test, build and deploy shipit_dashboard"
-      owner: "{{ event.head.user.email }}"
-      source: "https://github.com/mozilla-releng/services/tree/master/src/shipit_dashboard"
-    scopes:
-      - secrets:get:repo:github.com/mozilla-releng/services:branch:master
-      - hooks:modify-hook:project-releng/services-master-shipit_dashboard-*
-      - assume:hook-id:project-releng/services-master-shipit_dashboard-*
-    extra:
-      github:
-        env: true
-        events:
-          - pull_request.*
-          - push
-        branches:
-          - master
-    provisionerId: "{{ taskcluster.docker.provisionerId }}"
-    workerType: "{{ taskcluster.docker.workerType }}"
-    payload:
-      maxRunTime: 7200 # seconds (i.e. two hours)
-      image: "nixos/nix:1.11"
-      features:
-        taskclusterProxy: true
-      env:
-        APP: "shipit_dashboard"
-        TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:master"
-      command:
-        - "/bin/bash"
-        - "-c"
-        - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
-
-
-# --- shipit_dashboard (staging) ---
-
-  - metadata:
-      name: "shipit_dashboard"
-      description: "Test, build and deploy shipit_dashboard"
-      owner: "{{ event.head.user.email }}"
-      source: "https://github.com/mozilla-releng/services/tree/staging/src/shipit_dashboard"
-    scopes:
-      - secrets:get:repo:github.com/mozilla-releng/services:branch:staging
-      - hooks:modify-hook:project-releng/services-staging-shipit_dashboard-*
-      - assume:hook-id:project-releng/services-staging-shipit_dashboard-*
-    extra:
-      github:
-        env: true
-        events:
-          - push
-        branches:
-          - staging
-    provisionerId: "{{ taskcluster.docker.provisionerId }}"
-    workerType: "{{ taskcluster.docker.workerType }}"
-    payload:
-      maxRunTime: 7200 # seconds (i.e. two hours)
-      image: "nixos/nix:1.11"
-      features:
-        taskclusterProxy: true
-      env:
-        APP: "shipit_dashboard"
-        TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:staging"
-      command:
-        - "/bin/bash"
-        - "-c"
-        - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
-
-
-# --- shipit_dashboard (production) ---
-
-  - metadata:
-      name: "shipit_dashboard"
-      description: "Test, build and deploy shipit_dashboard"
-      owner: "{{ event.head.user.email }}"
-      source: "https://github.com/mozilla-releng/services/tree/production/src/shipit_dashboard"
-    scopes:
-      - secrets:get:repo:github.com/mozilla-releng/services:branch:production
-      - hooks:modify-hook:project-releng/services-production-shipit_dashboard-*
-      - assume:hook-id:project-releng/services-production-shipit_dashboard-*
-    extra:
-      github:
-        env: true
-        events:
-          - push
-        branches:
-          - production
-    provisionerId: "{{ taskcluster.docker.provisionerId }}"
-    workerType: "{{ taskcluster.docker.workerType }}"
-    payload:
-      maxRunTime: 7200 # seconds (i.e. two hours)
-      image: "nixos/nix:1.11"
-      features:
-        taskclusterProxy: true
-      env:
-        APP: "shipit_dashboard"
-        TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:production"
-      command:
-        - "/bin/bash"
-        - "-c"
-        - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
-
-
-# --- shipit_frontend (master) ---
-
-  - metadata:
-      name: "shipit_frontend"
-      description: "Test, build and deploy shipit_frontend"
+      name: "shipit-frontend"
+      description: "Test, build and deploy shipit-frontend"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/master/src/shipit_frontend"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:master
-      - hooks:modify-hook:project-releng/services-master-shipit_frontend-*
-      - assume:hook-id:project-releng/services-master-shipit_frontend-*
+      - hooks:modify-hook:project-releng/services-master-shipit-frontend-*
+      - assume:hook-id:project-releng/services-master-shipit-frontend-*
     extra:
       github:
         env: true
@@ -894,7 +688,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "shipit_frontend"
+        APP: "shipit-frontend"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:master"
       command:
         - "/bin/bash"
@@ -902,17 +696,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- shipit_frontend (staging) ---
+# --- shipit-frontend (staging) ---
 
   - metadata:
-      name: "shipit_frontend"
-      description: "Test, build and deploy shipit_frontend"
+      name: "shipit-frontend"
+      description: "Test, build and deploy shipit-frontend"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/staging/src/shipit_frontend"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:staging
-      - hooks:modify-hook:project-releng/services-staging-shipit_frontend-*
-      - assume:hook-id:project-releng/services-staging-shipit_frontend-*
+      - hooks:modify-hook:project-releng/services-staging-shipit-frontend-*
+      - assume:hook-id:project-releng/services-staging-shipit-frontend-*
     extra:
       github:
         env: true
@@ -928,7 +722,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "shipit_frontend"
+        APP: "shipit-frontend"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:staging"
       command:
         - "/bin/bash"
@@ -936,17 +730,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- shipit_frontend (production) ---
+# --- shipit-frontend (production) ---
 
   - metadata:
-      name: "shipit_frontend"
-      description: "Test, build and deploy shipit_frontend"
+      name: "shipit-frontend"
+      description: "Test, build and deploy shipit-frontend"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/production/src/shipit_frontend"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:production
-      - hooks:modify-hook:project-releng/services-production-shipit_frontend-*
-      - assume:hook-id:project-releng/services-production-shipit_frontend-*
+      - hooks:modify-hook:project-releng/services-production-shipit-frontend-*
+      - assume:hook-id:project-releng/services-production-shipit-frontend-*
     extra:
       github:
         env: true
@@ -962,7 +756,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "shipit_frontend"
+        APP: "shipit-frontend"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:production"
       command:
         - "/bin/bash"
@@ -970,17 +764,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- shipit_pipeline (master) ---
+# --- shipit-pipeline (master) ---
 
   - metadata:
-      name: "shipit_pipeline"
-      description: "Test, build and deploy shipit_pipeline"
+      name: "shipit-pipeline"
+      description: "Test, build and deploy shipit-pipeline"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/master/src/shipit_pipeline"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:master
-      - hooks:modify-hook:project-releng/services-master-shipit_pipeline-*
-      - assume:hook-id:project-releng/services-master-shipit_pipeline-*
+      - hooks:modify-hook:project-releng/services-master-shipit-pipeline-*
+      - assume:hook-id:project-releng/services-master-shipit-pipeline-*
     extra:
       github:
         env: true
@@ -997,7 +791,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "shipit_pipeline"
+        APP: "shipit-pipeline"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:master"
       command:
         - "/bin/bash"
@@ -1005,17 +799,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- shipit_pipeline (staging) ---
+# --- shipit-pipeline (staging) ---
 
   - metadata:
-      name: "shipit_pipeline"
-      description: "Test, build and deploy shipit_pipeline"
+      name: "shipit-pipeline"
+      description: "Test, build and deploy shipit-pipeline"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/staging/src/shipit_pipeline"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:staging
-      - hooks:modify-hook:project-releng/services-staging-shipit_pipeline-*
-      - assume:hook-id:project-releng/services-staging-shipit_pipeline-*
+      - hooks:modify-hook:project-releng/services-staging-shipit-pipeline-*
+      - assume:hook-id:project-releng/services-staging-shipit-pipeline-*
     extra:
       github:
         env: true
@@ -1031,7 +825,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "shipit_pipeline"
+        APP: "shipit-pipeline"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:staging"
       command:
         - "/bin/bash"
@@ -1039,17 +833,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- shipit_signoff (master) ---
+# --- shipit-signoff (master) ---
 
   - metadata:
-      name: "shipit_signoff"
-      description: "Test, build and deploy shipit_signoff"
+      name: "shipit-signoff"
+      description: "Test, build and deploy shipit-signoff"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/master/src/shipit_signoff"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:master
-      - hooks:modify-hook:project-releng/services-master-shipit_signoff-*
-      - assume:hook-id:project-releng/services-master-shipit_signoff-*
+      - hooks:modify-hook:project-releng/services-master-shipit-signoff-*
+      - assume:hook-id:project-releng/services-master-shipit-signoff-*
     extra:
       github:
         env: true
@@ -1066,7 +860,7 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "shipit_signoff"
+        APP: "shipit-signoff"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:master"
       command:
         - "/bin/bash"
@@ -1074,17 +868,17 @@ tasks:
         - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
 
 
-# --- shipit_signoff (staging) ---
+# --- shipit-signoff (staging) ---
 
   - metadata:
-      name: "shipit_signoff"
-      description: "Test, build and deploy shipit_signoff"
+      name: "shipit-signoff"
+      description: "Test, build and deploy shipit-signoff"
       owner: "{{ event.head.user.email }}"
       source: "https://github.com/mozilla-releng/services/tree/staging/src/shipit_signoff"
     scopes:
       - secrets:get:repo:github.com/mozilla-releng/services:branch:staging
-      - hooks:modify-hook:project-releng/services-staging-shipit_signoff-*
-      - assume:hook-id:project-releng/services-staging-shipit_signoff-*
+      - hooks:modify-hook:project-releng/services-staging-shipit-signoff-*
+      - assume:hook-id:project-releng/services-staging-shipit-signoff-*
     extra:
       github:
         env: true
@@ -1100,8 +894,111 @@ tasks:
       features:
         taskclusterProxy: true
       env:
-        APP: "shipit_signoff"
+        APP: "shipit-signoff"
         TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:staging"
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
+
+
+# --- shipit-uplift (master) ---
+
+  - metadata:
+      name: "shipit-uplift"
+      description: "Test, build and deploy shipit-uplift"
+      owner: "{{ event.head.user.email }}"
+      source: "https://github.com/mozilla-releng/services/tree/master/src/shipit_uplift"
+    scopes:
+      - secrets:get:repo:github.com/mozilla-releng/services:branch:master
+      - hooks:modify-hook:project-releng/services-master-shipit-uplift-*
+      - assume:hook-id:project-releng/services-master-shipit-uplift-*
+    extra:
+      github:
+        env: true
+        events:
+          - pull_request.*
+          - push
+        branches:
+          - master
+    provisionerId: "{{ taskcluster.docker.provisionerId }}"
+    workerType: "{{ taskcluster.docker.workerType }}"
+    payload:
+      maxRunTime: 7200 # seconds (i.e. two hours)
+      image: "nixos/nix:1.11"
+      features:
+        taskclusterProxy: true
+      env:
+        APP: "shipit-uplift"
+        TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:master"
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
+
+
+# --- shipit-uplift (staging) ---
+
+  - metadata:
+      name: "shipit-uplift"
+      description: "Test, build and deploy shipit-uplift"
+      owner: "{{ event.head.user.email }}"
+      source: "https://github.com/mozilla-releng/services/tree/staging/src/shipit_uplift"
+    scopes:
+      - secrets:get:repo:github.com/mozilla-releng/services:branch:staging
+      - hooks:modify-hook:project-releng/services-staging-shipit-uplift-*
+      - assume:hook-id:project-releng/services-staging-shipit-uplift-*
+    extra:
+      github:
+        env: true
+        events:
+          - push
+        branches:
+          - staging
+    provisionerId: "{{ taskcluster.docker.provisionerId }}"
+    workerType: "{{ taskcluster.docker.workerType }}"
+    payload:
+      maxRunTime: 7200 # seconds (i.e. two hours)
+      image: "nixos/nix:1.11"
+      features:
+        taskclusterProxy: true
+      env:
+        APP: "shipit-uplift"
+        TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:staging"
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
+
+
+# --- shipit-uplift (production) ---
+
+  - metadata:
+      name: "shipit-uplift"
+      description: "Test, build and deploy shipit-uplift"
+      owner: "{{ event.head.user.email }}"
+      source: "https://github.com/mozilla-releng/services/tree/production/src/shipit_uplift"
+    scopes:
+      - secrets:get:repo:github.com/mozilla-releng/services:branch:production
+      - hooks:modify-hook:project-releng/services-production-shipit-uplift-*
+      - assume:hook-id:project-releng/services-production-shipit-uplift-*
+    extra:
+      github:
+        env: true
+        events:
+          - push
+        branches:
+          - production
+    provisionerId: "{{ taskcluster.docker.provisionerId }}"
+    workerType: "{{ taskcluster.docker.workerType }}"
+    payload:
+      maxRunTime: 7200 # seconds (i.e. two hours)
+      image: "nixos/nix:1.11"
+      features:
+        taskclusterProxy: true
+      env:
+        APP: "shipit-uplift"
+        TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/repo:github.com/mozilla-releng/services:branch:production"
       command:
         - "/bin/bash"
         - "-c"

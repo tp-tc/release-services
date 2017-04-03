@@ -1,3 +1,2 @@
--e ../../lib/releng_common[api,auth,cors,log,db]
-
--e .
+-e ./../../lib/cli_common[all]#egg=mozilla-cli-common
+-e ./../../lib/backend_common[api,cors,auth,db]#egg=mozilla-backend-common

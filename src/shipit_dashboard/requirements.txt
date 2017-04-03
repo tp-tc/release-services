@@ -1,3 +1,0 @@
--e ../../lib/releng_common[api,auth,cors,log,db,security]
-
--e .

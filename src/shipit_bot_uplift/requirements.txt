@@ -1,13 +1,8 @@
--e .
-
-# i wonder why libmozdata doesn't require this already
-requests[security]>=2.7.0
-certifi
-
-libmozdata
-python-hglib
+-e ./../../lib/cli_common[all]#egg=mozilla-cli-common
 
 click
+mohawk
+python-dateutil
+python-hglib
 taskcluster
-logbook
-structlog
+libmozdata

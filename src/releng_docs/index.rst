@@ -8,7 +8,6 @@ supporting.
 
     Currently supported platform is **Linux**.
 
-
 Useful links
 ------------
 

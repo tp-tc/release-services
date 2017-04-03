@@ -1,3 +1,0 @@
-ipdb
-flake8
-pytest

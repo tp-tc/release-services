@@ -13,17 +13,18 @@ let
     gnused
     jq
     makeWrapper
-    nix-prefetch-scripts
+    nix
     stdenv
     writeScript;
 
   inherit (releng_pkgs.pkgs.lib)
     flatten
     inNixShell
+    optional
     optionalAttrs
     optionals
-    optional
     removeSuffix
+    replaceStrings
     splitString
     unique;
 
@@ -79,8 +80,16 @@ in rec {
 
   packagesWith = attrName: pkgs':
     builtins.filter
-      (pkg: builtins.hasAttr "name" pkg && builtins.hasAttr attrName pkg)
-      (builtins.attrValues pkgs');
+      ({ name, pkg }:
+          let
+            pkg = builtins.getAttr name pkgs';
+        in
+            builtins.hasAttr "name" pkg && builtins.hasAttr attrName pkg
+      )
+      (builtins.map
+        (name: { inherit name; pkg = builtins.getAttr name pkgs'; })
+        (builtins.attrNames pkgs')
+      );
 
   mkDocker =
     { name
@@ -169,18 +178,20 @@ in rec {
     , src_path
     , secrets ? "repo:github.com/mozilla-releng/services:branch:${branch}"
     }:
-    ''
-    # --- ${name} (${branch}) ---
+    let
+      name' = builtins.substring 8 (builtins.stringLength name) name;
+    in ''
+    # --- ${name'} (${branch}) ---
 
       - metadata:
-          name: "${name}"
-          description: "Test, build and deploy ${name}"
+          name: "${name'}"
+          description: "Test, build and deploy ${name'}"
           owner: "{{ event.head.user.email }}"
           source: "https://github.com/mozilla-releng/services/tree/${branch}/${src_path}"
         scopes:
           - secrets:get:${secrets}
-          - hooks:modify-hook:project-releng/services-${branch}-${name}-*
-          - assume:hook-id:project-releng/services-${branch}-${name}-*
+          - hooks:modify-hook:project-releng/services-${branch}-${name'}-*
+          - assume:hook-id:project-releng/services-${branch}-${name'}-*
         extra:
           github:
             env: true
@@ -198,7 +209,7 @@ in rec {
           features:
             taskclusterProxy: true
           env:
-            APP: "${name}"
+            APP: "${name'}"
             TASKCLUSTER_SECRETS: "taskcluster/secrets/v1/secret/${secrets}"
           command:
             - "/bin/bash"
@@ -206,26 +217,50 @@ in rec {
             - "nix-env -iA nixpkgs.gnumake nixpkgs.curl nixpkgs.cacert && export SSL_CERT_FILE=$HOME/.nix-profile/etc/ssl/certs/ca-bundle.crt && mkdir /src && cd /src && curl -L https://github.com/mozilla-releng/services/archive/$GITHUB_HEAD_SHA.tar.gz -o $GITHUB_HEAD_SHA.tar.gz && tar zxf $GITHUB_HEAD_SHA.tar.gz && cd services-$GITHUB_HEAD_SHA && ./.taskcluster.sh"
     '';
 
-  fromRequirementsFile = files: pkgs':
+  fromRequirementsFile = file: custom_pkgs:
     let
-      # read all files and flatten the dependencies
-      # TODO: read recursivly all -r statements
-      specs =
-        flatten
-          (map
-            (file: splitString "\n"(removeSuffix "\n" (builtins.readFile file)))
-            files
+      removeLines =
+        builtins.filter
+          (line: ! startsWith line "-r" && line != "" && ! startsWith line "#");
+
+      removeExtras =
+        builtins.map
+          (line:
+            let
+              split = splitString "[" line;
+            in
+              if builtins.length split > 1
+                then builtins.head split
+                else line
           );
-    in
-      map
-        (requirement: builtins.getAttr requirement pkgs')
-        (unique
-          (cleanRequirementsSpecification
-            (ignoreRequirementsLines
-              specs
-            )
+
+      extractEggName =
+        map
+          (line: 
+            let
+              split = splitString "egg=" line;
+            in
+              if builtins.length split == 2
+                then builtins.elemAt split 1
+                else line
+          );
+
+      readLines = file_:
+        (splitString "\n"
+          (removeSuffix "\n"
+            (builtins.readFile file_)
           )
         );
+    in
+      map
+        (pkg_name: builtins.getAttr pkg_name custom_pkgs)
+        (removeExtras
+          (removeLines
+            (extractEggName
+              (readLines file))));
+
+        
+
 
   makeElmStuff = deps:
     let 
@@ -265,6 +300,9 @@ in rec {
       HOME=$home_old
     '';
        
+  startsWith = s: x:
+    builtins.substring 0 (builtins.stringLength x) s == x;
+
   filterSource = src:
     { name ? null
     , include ? [ "/" ]
@@ -285,7 +323,6 @@ in rec {
           "/${name}.egg-info"
           "/build"
         ] else exclude;
-        startsWith = s: x: builtins.substring 0 (builtins.stringLength x) s == x;
         relativePath = path:
           builtins.substring (builtins.stringLength (builtins.toString src))
                              (builtins.stringLength path)
@@ -301,19 +338,20 @@ in rec {
     { name
     , version
     , src
-    , src_path ? "src/${name}"
+    , src_path ? null
     , csp ? "default-src 'none'; img-src 'self' data:; script-src 'self'; style-src 'self'; font-src 'self';"
+    , nodejs
     , node_modules
     , elm_packages
     , patchPhase ? ""
     , postInstall ? ""
     , shellHook ? ""
-    , staging ? true
-    , production ? false
+    , inStaging ? true
+    , inProduction ? false
     }:
     let
-      scss_common = ./../../lib/scss_common;
-      elm_common = ./../../lib/elm_common;
+      scss_common = ./../../lib/frontend_common/scss;
+      frontend_common = ./../../lib/frontend_common;
       self = stdenv.mkDerivation {
         name = "${name}-${version}";
 
@@ -323,7 +361,7 @@ in rec {
                     )
           src;
 
-        buildInputs = [ elmPackages.elm ] ++ (builtins.attrValues node_modules);
+        buildInputs = [ nodejs elmPackages.elm ] ++ (builtins.attrValues node_modules);
 
         patchPhase = ''
           if [ -e src/scss ]; then
@@ -339,7 +377,7 @@ in rec {
           for item in ./*; do
             if [ -h $item ]; then
               rm -f $item
-              cp ${elm_common}/`basename $item` ./
+              cp ${frontend_common}/`basename $item` ./
             fi
           done
 
@@ -347,7 +385,7 @@ in rec {
             for item in ./src/*; do
               if [ -h $item ]; then
                 rm -f $item
-                cp ${elm_common}/`basename $item` ./src/
+                cp ${frontend_common}/`basename $item` ./src/
               fi
             done
           fi
@@ -361,12 +399,11 @@ in rec {
           for item in ${builtins.concatStringsSep " " (builtins.attrValues node_modules)}; do
             ln -s $item/lib/node_modules/* ./node_modules
           done
-          export PATH=./node_modules/mozilla-neo/bin/:$PATH
-          export NODE_PATH=$PWD/node_modules/mozilla-neo/node_modules:$NODE_PATH
+          export NODE_PATH=$PWD/node_modules:$NODE_PATH
         '';
 
         buildPhase = ''
-          ./node_modules/mozilla-neo/bin/neo build --config webpack.config.js
+          webpack
         '';
 
         doCheck = true;
@@ -374,19 +411,18 @@ in rec {
         checkPhase = ''
           if [ -d src/ ]; then
             echo "----------------------------------------------------------"
-            echo "---  Running ... elm-format-0.17 src/ --validate  --------"
+            echo "---  Running ... elm-format-0.18 src/ --validate  --------"
             echo "----------------------------------------------------------"
-            elm-format-0.17 src/ --validate
+            elm-format-0.18 src/ --validate
           fi
           if [ -e Main.elm ]; then
             echo "----------------------------------------------------------"
-            echo "---  Running ... elm-format-0.17 ./*.elm --validate  -----"
+            echo "---  Running ... elm-format-0.18 ./*.elm --validate  -----"
             echo "----------------------------------------------------------"
-            elm-format-0.17 ./*.elm --validate
+            elm-format-0.18 ./*.elm --validate
           fi
           echo "Everything OK!"
           echo "----------------------------------------------------------"
-          # TODO: neo test
         '';
 
         installPhase = ''
@@ -399,106 +435,181 @@ in rec {
         inherit postInstall;
 
         shellHook = ''
-          cd ${src_path}
+          cd ${self.src_path}
         '' + self.configurePhase + shellHook;
 
-        passthru.taskclusterGithubTasks =
-          map (branch: mkTaskclusterGithubTask { inherit name src_path branch; })
-              ([ "master" ] ++ optional staging "staging"
-                            ++ optional production "production"
-              );
+        passthru = {
 
-        passthru.update = writeScript "update-${name}" ''
-          export SSL_CERT_FILE="${cacert}/etc/ssl/certs/ca-bundle.crt"
-          pushd ${src_path} >> /dev/null
-          ${node2nix}/bin/node2nix \
-            --composition node-modules.nix \
-            --input node-modules.json \
-            --output node-modules-generated.nix \
-            --node-env node-env.nix \
-            --flatten \
-            --pkg-name nodejs-6_x
-          rm -rf elm-stuff
-          ${elmPackages.elm}/bin/elm-package install -y
-          ${elm2nix}/bin/elm2nix elm-packages.nix
-          popd
-        '';
+          src_path =
+            if src_path != null
+              then src_path
+              else
+                "src/" +
+                  (replaceStrings ["-"] ["_"]
+                    (builtins.substring 8
+                      (builtins.stringLength name - 8) name));
+
+          taskclusterGithubTasks =
+            map (branch: mkTaskclusterGithubTask { inherit name branch; inherit (self) src_path; })
+                ([ "master" ] ++ optional inStaging "staging"
+                              ++ optional inProduction "production"
+                );
+
+          update = writeScript "update-${name}" ''
+            export SSL_CERT_FILE="${cacert}/etc/ssl/certs/ca-bundle.crt"
+            pushd ${self.src_path} >> /dev/null
+
+            ${node2nix}/bin/node2nix \
+              --composition node-modules.nix \
+              --input node-modules.json \
+              --output node-modules-generated.nix \
+              --node-env node-env.nix \
+              --flatten \
+              --pkg-name nodejs-6_x
+
+            # TODO: move this into default.nix
+            ${gnused}/bin/sed -i -e "s| python2||" node-modules.nix
+            ${gnused}/bin/sed -i -e "s| inherit nodejs;| python = pkgs.python2;inherit nodejs;|" node-modules.nix
+            ${gnused}/bin/sed -i -e "s| sources.\"elm-0.18| #sources.\"elm-0.18|" node-modules-generated.nix
+            ${gnused}/bin/sed -i -e "s| name = \"elm-webpack-loader\";| dontNpmInstall = true;name = \"elm-webpack-loader\";|" node-modules-generated.nix
+
+            #rm -rf elm-stuff
+            #${elmPackages.elm}/bin/elm-package install -y
+            #${elm2nix}/bin/elm2nix elm-packages.nix
+
+            popd
+          '';
+        };
       };
     in self;
 
   mkBackend =
+    args @
     { name
+    , dirname
     , version
     , src
-    , src_path ? "src/${name}"
     , python
-    , releng_common
     , buildInputs ? []
     , propagatedBuildInputs ? []
+    , doCheck ? true
+    , postInstall ? ""
+    , shellHook ? ""
+    , dockerConfig ? {}
     , passthru ? {}
-    , staging ? true
-    , production ? false
+    , inStaging ? true
+    , inProduction ? false
     }:
     let
+      self = mkPython (args // {
+
+        postInstall = ''
+          mkdir -p $out/bin
+          ln -s ${python.packages."Flask"}/bin/flask $out/bin
+          ln -s ${python.packages."gunicorn"}/bin/gunicorn $out/bin
+          ln -s ${python.packages."newrelic"}/bin/newrelic-admin $out/bin
+          for i in $out/bin/*; do
+            wrapProgram $i --set PYTHONPATH $PYTHONPATH
+          done
+          if [ -e ./settings.py ]; then
+            mkdir -p $out/etc
+            cp ./settings.py $out/etc
+          fi
+          if [ -d ./migrations ]; then
+            mv ./migrations $out/${python.__old.python.sitePackages}
+          fi
+        '' + postInstall;
+
+        shellHook = ''
+          export CACHE_DEFAULT_TIMEOUT=3600
+          export CACHE_TYPE=filesystem
+          export CACHE_DIR=$PWD/cache
+          export LANG=en_US.UTF-8
+          export DEBUG=1
+          export FLASK_APP=${dirname}:app
+        '' + shellHook;
+
+        dockerConfig = {
+          Env = [
+            "PATH=/bin"
+            "APP_SETTINGS=${self}/etc/settings.py"
+            "FLASK_APP=${dirname}:app"
+            "LANG=en_US.UTF-8"
+            "LOCALE_ARCHIVE=${glibcLocales}/lib/locale/locale-archive"
+            "SSL_CERT_FILE=${releng_pkgs.pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+          ];
+          Cmd = [
+            "newrelic-admin" "run-program" "gunicorn" "${dirname}:app" "--log-file" "-"
+          ];
+        };
+
+      });
+    in self;
+
+  mkPython =
+    { name
+    , dirname
+    , version
+    , src
+    , python
+    , buildInputs ? []
+    , propagatedBuildInputs ? []
+    , doCheck ? true
+    , postInstall ? ""
+    , shellHook ? ""
+    , dockerConfig ?
+      { Env = [
+          "PATH=/bin"
+          "LANG=en_US.UTF-8"
+          "LOCALE_ARCHIVE=${releng_pkgs.pkgs.glibcLocales}/lib/locale/locale-archive"
+          "SSL_CERT_FILE=${releng_pkgs.pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+        ];
+        Cmd = [];
+      }
+    , passthru ? {}
+    , inStaging ? true
+    , inProduction ? false
+    }:
+    let
+
       self = python.mkDerivation {
+
         namePrefix = "";
         name = "${name}-${version}";
 
         inherit src;
 
-        buildInputs = [
-          makeWrapper
-          glibcLocales
-          python.packages."flake8"
-          python.packages."gunicorn"
-        ] ++ buildInputs 
-          ++ optional (builtins.elem "db" releng_common.extras) releng_pkgs.postgresql;
-        propagatedBuildInputs = [
-          releng_common
-          releng_pkgs.pkgs.cacert
-        ] ++ propagatedBuildInputs;
+        buildInputs =
+          [ makeWrapper
+            glibcLocales
+          ] ++ buildInputs;
+
+        propagatedBuildInputs =
+          [ releng_pkgs.pkgs.cacert
+          ] ++ propagatedBuildInputs;
 
         patchPhase = ''
+          # replace synlink with real file
           rm VERSION
           echo ${version} > VERSION
+
+          # generate MANIFEST.in to make sure every file is included
           rm -f MANIFEST.in
           cat > MANIFEST.in <<EOF
-          recursive-include ${name}/*
+          recursive-include ${dirname}/*
 
           include VERSION
-          include ${name}/*.ini
-          include ${name}/*.json
-          include ${name}/*.mako
-          include ${name}/*.yml
+          include ${dirname}/*.ini
+          include ${dirname}/*.json
+          include ${dirname}/*.mako
+          include ${dirname}/*.yml
 
           recursive-exclude * __pycache__
           recursive-exclude * *.py[co]
           EOF
         '';
 
-        postInstall = ''
-          mkdir -p $out/bin $out/etc
-
-          ln -s ${python.__old.python.interpreter} $out/bin
-          ln -s ${python.packages."Flask"}/bin/flask $out/bin
-          ln -s ${python.packages."gunicorn"}/bin/gunicorn $out/bin
-          ln -s ${python.packages."newrelic"}/bin/newrelic-admin $out/bin
-       
-          cp ./settings.py $out/etc
-
-          for i in $out/bin/*; do
-            wrapProgram $i --set PYTHONPATH $PYTHONPATH
-          done
-
-          if [ -d ./migrations ]; then
-            mv ./migrations $out/${python.__old.python.sitePackages}
-          fi
-
-          find $out -type d -name "__pycache__" -exec 'rm -r "{}"' \;
-          find $out -type d -name "*.py" -exec '${python.__old.python.executable} -m compileall -f "{}"' \;
-        '';
-
-        doCheck = true;
+        inherit doCheck;
 
         checkPhase = ''
           export LANG=en_US.UTF-8
@@ -508,50 +619,49 @@ in rec {
           pytest tests/
         '';
 
-        shellHook = ''
-          export CACHE_DEFAULT_TIMEOUT=3600
-          export CACHE_TYPE=filesystem
-          export CACHE_DIR=$PWD/cache
-          export LANG=en_US.UTF-8
-          export FLASK_APP=${name}
-          export DEBUG=1
-          export LOCALE_ARCHIVE=${glibcLocales}/lib/locale/locale-archive
-          export FLASK_APP=${name}:app
+        postInstall = ''
+          mkdir -p $out/bin
+          ln -s ${python.__old.python.interpreter} $out/bin
+          for i in $out/bin/*; do
+            wrapProgram $i --set PYTHONPATH $PYTHONPATH
+          done
+          find $out -type d -name "__pycache__" -exec 'rm -r "{}"' \;
+          find $out -type d -name "*.py" -exec '${python.__old.python.executable} -m compileall -f "{}"' \;
+        '' + postInstall;
 
-          pushd ${src_path} >> /dev/null
+        shellHook = ''
+          export LOCALE_ARCHIVE=${glibcLocales}/lib/locale/locale-archive
+
+          pushd ${self.src_path} >> /dev/null
           tmp_path=$(mktemp -d)
           export PATH="$tmp_path/bin:$PATH"
           export PYTHONPATH="$tmp_path/${python.__old.python.sitePackages}:$PYTHONPATH"
           mkdir -p $tmp_path/${python.__old.python.sitePackages}
           ${python.__old.bootstrapped-pip}/bin/pip install -q -e . --prefix $tmp_path
-          ${python.__old.bootstrapped-pip}/bin/pip install -q -e ../../lib/releng_common --prefix $tmp_path
+          ${python.__old.bootstrapped-pip}/bin/pip install -q -e ../../lib/cli_common --prefix $tmp_path
+          ${python.__old.bootstrapped-pip}/bin/pip install -q -e ../../lib/backend_common --prefix $tmp_path
           popd >> /dev/null
 
-          cd ${src_path}
-        '';
+          cd ${self.src_path}
+        '' + shellHook;
 
         passthru = {
+          src_path =
+            "src/" +
+              (replaceStrings ["-"] ["_"]
+                (builtins.substring 8
+                  (builtins.stringLength name - 8) name));
+
           taskclusterGithubTasks =
-            map (branch: mkTaskclusterGithubTask { inherit name src_path branch; })
-                ([ "master" ] ++ optional staging "staging"
-                              ++ optional production "production"
+            map (branch: mkTaskclusterGithubTask { inherit name branch; inherit (self) src_path; })
+                ([ "master" ] ++ optional inStaging "staging"
+                              ++ optional inProduction "production"
                 );
+
           docker = mkDocker {
             inherit name version;
             contents = [ busybox self ];
-            config = {
-              Env = [
-                "PATH=/bin"
-                "APP_SETTINGS=${self}/etc/settings.py"
-                "FLASK_APP=${name}:app"
-                "LANG=en_US.UTF-8"
-                "LOCALE_ARCHIVE=${glibcLocales}/lib/locale/locale-archive"
-                "SSL_CERT_FILE=${releng_pkgs.pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
-              ];
-              Cmd = [
-                "newrelic-admin" "run-program" "gunicorn" "${name}:app" "--log-file" "-"
-              ];
-            };
+            config = dockerConfig;
           };
         } // passthru;
       };
@@ -568,21 +678,21 @@ in rec {
       }
 
       github_sha256() {
-        ${nix-prefetch-scripts}/bin/nix-prefetch-zip \
-           --hash-type sha256 \
+        ${nix}/bin/nix-prefetch-url \
+           --unpack \
            "https://github.com/$1/$2/archive/$3.tar.gz" 2>&1 | \
-           ${gnugrep}/bin/grep "hash is " | \
-           ${gnused}/bin/sed 's/hash is //'
+               ${coreutils}/bin/tail -1
       }
 
       echo "=== ${owner}/${repo}@${branch} ==="
 
-      echo -n "Looking up latest revision ... "
+      echo "Looking up latest revision ... "
       rev=$(github_rev "${owner}" "${repo}" "${branch}");
-      echo "revision is \`$rev\`."
+      echo R"evision found: \`$rev\`."
 
+      echo "Looking up sha256 ... "
       sha256=$(github_sha256 "${owner}" "${repo}" "$rev");
-      echo "sha256 is \`$sha256\`."
+      echo "sha256 found: \`$sha256\`."
 
       if [ "$sha256" == "" ]; then
         echo "sha256 is not valid!"

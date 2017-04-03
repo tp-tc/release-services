@@ -1,3 +1,6 @@
--e ../../lib/releng_common[api,auth,cors,log,db,cache,security,pulse]
-
--e .
+-e ./../../lib/cli_common[all]#egg=mozilla-cli-common
+-e ./../../lib/backend_common[api,auth,cors,db,cache,security,pulse]#egg=mozilla-backend-common
+SQLAlchemy
+Werkzeug
+pytz
+redis

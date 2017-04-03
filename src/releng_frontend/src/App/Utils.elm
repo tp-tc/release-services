@@ -3,11 +3,11 @@ module App.Utils exposing (..)
 import App.Types
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events as Events
 import Http
-import Json.Decode as JsonDecode exposing ((:=))
+import Json.Decode as JsonDecode
 import Utils
 import VirtualDom
+import RemoteData exposing (WebData, RemoteData(..))
 
 
 dropdown :
@@ -18,7 +18,7 @@ dropdown :
 dropdown event items selected =
     div [ class "btn-group btn-dropdown" ]
         [ span
-            [ type' "button"
+            [ type_ "button"
             , class "btn btn-secondary dropdown-toggle"
             , attribute "data-toggle" "dropdown"
             , attribute "aria-haspopup" "true"
@@ -27,7 +27,7 @@ dropdown event items selected =
             [ text <| Maybe.withDefault "Select a value..." selected
             ]
         , span
-            [ type' "button"
+            [ type_ "button"
             , class "btn btn-secondary dropdown-toggle"
             , attribute "data-toggle" "dropdown"
             , attribute "aria-haspopup" "true"
@@ -51,14 +51,18 @@ dropdown event items selected =
 
 loading : VirtualDom.Node a
 loading =
-    div [ class "progress-wrapper" ]
-        [ progress
-            [ class "progress progress-striped progress-animated"
-            , attribute "value" "100"
-            , attribute "max" "100"
+    div
+        [ class "progress"
+        ]
+        [ div
+            [ class "progress-bar progress-bar-striped progress-bar-animated"
+            , attribute "role" "progressbar"
+            , attribute "aria-valuenow" "100"
+            , attribute "aria-valuemin" "0"
+            , attribute "aria-valuemax" "100"
+            , style [ ( "width", "100%" ) ]
             ]
             [ text "Loading ..." ]
-        , span [] [ text "Loading ..." ]
         ]
 
 
@@ -78,43 +82,55 @@ error event message =
         ]
 
 
-handleResponse response =
+getAlerts : WebData String -> List App.Types.Alert
+getAlerts response =
     let
         decoderError =
-            JsonDecode.object4 App.Types.ResponseError
-                ("type" := JsonDecode.string)
-                ("detail" := JsonDecode.string)
-                ("status" := JsonDecode.int)
-                ("title" := JsonDecode.string)
-    in
-        if 200 <= response.status && response.status < 300 then
-            case response.value of
-                Http.Text text ->
-                    []
+            JsonDecode.map4 App.Types.ResponseError
+                (JsonDecode.field "type" JsonDecode.string)
+                (JsonDecode.field "detail" JsonDecode.string)
+                (JsonDecode.field "status" JsonDecode.int)
+                (JsonDecode.field "title" JsonDecode.string)
 
-                _ ->
-                    [ App.Types.Alert
-                        App.Types.AlertDanger
-                        "Error!"
-                        "Response body is a blob, expecting a string."
-                    ]
-        else
+        handleError error =
             [ App.Types.Alert
                 App.Types.AlertDanger
                 "Error!"
-                (case response.value of
-                    Http.Text text ->
-                        case JsonDecode.decodeString decoderError text of
+                (case error of
+                    Http.BadUrl url ->
+                        ("Bad Url: " ++ url)
+
+                    Http.Timeout ->
+                        "Request Timeout"
+
+                    Http.NetworkError ->
+                        "A network error occured"
+
+                    Http.BadPayload details response ->
+                        ("Bad payload: " ++ details)
+
+                    Http.BadStatus response ->
+                        case JsonDecode.decodeString decoderError response.body of
                             Ok obj ->
                                 obj.detail
 
                             Err error ->
-                                text
-
-                    r ->
-                        response.statusText
+                                error
                 )
             ]
+    in
+        case response of
+            Success r ->
+                []
+
+            Loading ->
+                []
+
+            NotAsked ->
+                []
+
+            Failure e ->
+                handleError e
 
 
 viewAlerts :
@@ -147,9 +163,11 @@ viewAlerts alerts =
             |> div []
 
 
+appendItem : a -> List a -> List a
 appendItem item items =
     List.append items [ item ]
 
 
+appendItems : List a -> List a -> List a
 appendItems items1 items2 =
     List.append items2 items1

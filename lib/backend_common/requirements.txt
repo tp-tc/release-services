@@ -1,0 +1,5 @@
+-e ./../cli_common[all]#egg=mozilla-cli-common
+Flask
+Jinja2
+gunicorn
+newrelic
