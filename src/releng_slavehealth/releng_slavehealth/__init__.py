@@ -6,8 +6,12 @@ from __future__ import absolute_import
 
 import os
 
+import flask
+
 import backend_common
 import backend_common.db
+
+import releng_slavehealth.api
 
 
 DEBUG = bool(os.environ.get('DEBUG', __name__ == '__main__'))
@@ -15,9 +19,32 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 APP_SETTINGS = os.path.abspath(os.path.join(HERE, '..', 'settings.py'))
 
 
+def favicon():
+    return flask.send_from_directory(
+        os.path.dirname(__file__),
+        'favicon.ico',
+        mimetype='image/vnd.microsoft.icon',
+    )
+
+
 def init_app(app):
-    return app.api.register(
+    app.api.register(
         os.path.join(os.path.dirname(__file__), 'api.yml'))
+
+    app.add_url_rule(
+        '/buildapi',
+        'buildapi_proxy',
+        releng_slavehealth.api.buildapi_proxy,
+    )
+    app.add_url_rule(
+        '/buildapi/<path:path>',
+        'buildapi_proxy',
+        releng_slavehealth.api.buildapi_proxy,
+    )
+
+    app.add_url_rule('/favicon.ico', 'favicon', favicon)
+
+    return None
 
 
 if DEBUG and not os.environ.get('DATABASE_URL'):

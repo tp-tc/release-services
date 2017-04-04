@@ -3,12 +3,58 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from __future__ import absolute_import
+
+import html
+
+import flask
+import requests
+
+
+BUILDAPI_URL = 'https://secure.pub.build.mozilla.org/buildapi'
+
+
+def buildapi_proxy(path=""):
+
+    if path == "js/jquery-ui-1.8.1.custom.min.js":
+        return "", 200
+
+    # fetch the url, and stream it back
+    response = requests.get(
+        BUILDAPI_URL + "/" + path,
+        auth=(
+            flask.current_app.config.get('BUILDAPI_USERNAME'),
+            flask.current_app.config.get('BUILDAPI_PASSWORD'),
+        ),
+        params=flask.request.args,
+    )
+
+    headers = [
+        header
+        for header in response.raw.headers.items()
+        if 'content-encoding' != header[0]
+    ]
+
+    # sometimes (not always) a buildapi returns json as html encoded string
+    # no idea why, this is where we detect it and "fix" it
+    content = response.content.decode('utf8')
+    if content.startswith('<pre>'):
+        content = html.unescape(content[5:-6])
+
+    # reply with reponse from requests library
+    return flask.Response(
+        response=content,
+        status=response.status_code,
+        headers=headers,
+        content_type=response.headers['content-type'],
+    )
+
+
 null = None
 false = False
 true = True
 
 def get_slaves():
-    return { 
+    return {
         "b-linux64-hp-0010": {
             "elapsed_on_job": "0:07:26",
             "elapsed_since_job": "11 days, 20:07:24",
@@ -460,11 +506,11 @@ def get_slaves_try(slave_type):
             "slave_state": "broken",
             "starttime": "2014-02-21 09:24:52"
         }
-    }   
-       
+    }
 
 
-def get_slaves_build(slave_type):   
+
+def get_slaves_build(slave_type):
     return {
         "bld-linux64-spot-002": {
             "elapsed_on_job": "0:32:33",
@@ -496,7 +542,7 @@ def get_slaves_test(slave_type):
             "slave_class": "test",
             "slave_state": "working",
             "starttime": "2015-01-26 22:37:41"
-        },    
+        },
     }
 
 
@@ -507,7 +553,7 @@ def get_masters():
         "bm86-build1": "buildbot-master86.srv.releng.scl3.mozilla.com:8001",
         "bm87-try1": "buildbot-master87.srv.releng.scl3.mozilla.com:8101",
         "bm91-build1": "buildbot-master91.srv.releng.usw2.mozilla.com:8001",
-        "bm94-build1": "buildbot-master94.srv.releng.use1.mozilla.com:8001"        
+        "bm94-build1": "buildbot-master94.srv.releng.use1.mozilla.com:8001"
     }
 
 
@@ -596,7 +642,7 @@ def get_slave_state():
         "metadata": {
             "generated": "2015-01-27T06:49:31.046908Z"
         },
-        "test": {       
+        "test": {
             "t-snow-r4": {
                 "broken": 0,
                 "decommissioned": 2,
@@ -744,8 +790,8 @@ def get_slave_state():
             }
         }
     }
-    
-        
+
+
 def get_pendings():
     return {
         "pending": {
@@ -799,15 +845,5 @@ def get_pendings():
                     }
                 ]
             }
-        }                                    
+        }
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-     
