@@ -1,8 +1,9 @@
+var base_url = $('body').data('slavehealth-url') || "https://127.0.0.1:8006" ;
 var local_test = false;
 var slavetype_url = "./slavetype.html";
-var slavealloc_api_baseurl = "https://secure.pub.build.mozilla.org/slavealloc/api/";
-var buildapi_baseurl = "https://secure.pub.build.mozilla.org/buildapi/recent/";
-var slaveapi_baseurl = "https://secure.pub.build.mozilla.org/slaveapi/slaves/";
+var slavealloc_api_baseurl = base_url + "/slavealloc/api/";
+var buildapi_baseurl = base_url + "/buildapi/recent/";
+var slaveapi_baseurl = base_url + "/slaveapi/slaves/";
 var nagios_baseurl = "http://nagios1.private.releng.scl3.mozilla.com/releng-scl3/cgi-bin/";
 var nagios_host_baseurl = nagios_baseurl + "extinfo.cgi?type=1&host=";
 var nagios_history_baseurl = nagios_baseurl + "history.cgi?host=";
@@ -630,9 +631,10 @@ function jobHistoryIsEmpty() {
 }
 
 function getJobHistory(data) {
+    var base_url = $('body').data('slavehealth-url') || "https://127.0.0.1:8006";
     // Get a list of links to masters so we can link directly to job results.
     $.ajax({
-        url:      './json/masters.json',
+        url:      base_url + '/masters',
         async:    false,
         dataType: 'json',
         success:  function (masterjson) {

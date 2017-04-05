@@ -2,7 +2,7 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <title>Mozilla Releng Slave Health</title>
-<link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
   <link rel="stylesheet" media="screen,projection,tv" href="./css/responsive-bundle.352a81c95337.css" />
   <link rel="stylesheet" href="./jquery.tablesorter/themes/blue/style.css" type="text/css" media="print, projection, screen" />
   <link rel="stylesheet" href="./css/slave_health.css" type="text/css" media="print, projection, screen" />
@@ -10,7 +10,7 @@
   <script type="text/javascript" src="./jquery.tablesorter/jquery-1.6.4.min.js"></script>
   <script type="text/javascript" src="./jquery.tablesorter/jquery.tablesorter.js"></script>
   <script type="text/javascript" src="./jquery.tablesorter/Class.create.js"></script>
-  <scripxt type="text/javascript" src="./jquery.tablesorter/jquery-encoder-0.1.0.js"></script>
+  <script type="text/javascript" src="./jquery.tablesorter/jquery-encoder-0.1.0.js"></script>
   <script type="text/javascript" src="./js/bugzilla.js"></script>
   <script type="text/javascript" src="./js/slave_health.js"></script>
 </head>
@@ -103,10 +103,7 @@
       </div>
     </div>
   </div>
-
-
   <script type="text/javascript">
-    var base_url = $('body').data('slavehealth-url') || "https://127.0.0.1:8006" ;
     var slave_json = "";
     var slaveclass = "";
     var slavetype = "";
@@ -146,14 +143,9 @@
         $('button#rebootslave').prop('title','Terminate instance');
       }
       slave_json = slavealloc_api_baseurl + "slaves/" + slavename + "?byname=1";
-//      var slave_json = base_url + '/slave_special'  
-//      var slave_json = base_url + '/slaves/' + slaveclass + '/' + slavetype + '/' + slavename 
- 
-//      if (local_test) {
-//        slave_json = "./json/test_json/slave.json";
-//      }
-//this is used only in development mode,not needed in production
-//always querry slavealloc even in develpment mode
+      if (local_test) {
+        slave_json = "./json/test_json/slave.json";
+      }
       var master_id = 0;
       $.getJSON(slave_json, function(slave){
         getSlavedata(slave, slaveclass, slavetype, params);
