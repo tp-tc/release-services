@@ -10,20 +10,18 @@ import flask
 import requests
 
 
-BUILDAPI_URL = 'https://secure.pub.build.mozilla.org/buildapi'
+BASE_URL = 'https://secure.pub.build.mozilla.org'
 
-
-def buildapi_proxy(path=""):
-
+def create_proxy(name, path):
     if path == "js/jquery-ui-1.8.1.custom.min.js":
         return "", 200
 
     # fetch the url, and stream it back
     response = requests.get(
-        BUILDAPI_URL + "/" + path,
+        BASE_URL + "/" + name + "/" + path,
         auth=(
-            flask.current_app.config.get('BUILDAPI_USERNAME'),
-            flask.current_app.config.get('BUILDAPI_PASSWORD'),
+            flask.current_app.config.get('MOZILLA_LDAP_USERNAME'),
+            flask.current_app.config.get('MOZILLA_LDAP_PASSWORD'),
         ),
         params=flask.request.args,
     )
@@ -47,6 +45,18 @@ def buildapi_proxy(path=""):
         headers=headers,
         content_type=response.headers['content-type'],
     )
+
+
+def slavealloc_proxy(path=""):
+    return create_proxy("slavealloc", path)
+
+def slaveapi_proxy(path=""):
+    return create_proxy("slaveapi", path)
+
+def buildapi_proxy(path=""):
+    return create_proxy("buildapi", path)
+
+
 
 
 null = None

@@ -17,14 +17,14 @@ DATABASE_URL = os.environ.get('DATABASE_URL')
 SQLALCHEMY_DATABASE_URI = DATABASE_URL
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-BUILDAPI_USERNAME = os.environ.get('BUILDAPI_USERNAME')
-BUILDAPI_PASSWORD = os.environ.get('BUILDAPI_PASSWORD')
+MOZILLA_LDAP_USERNAME = os.environ.get('MOZILLA_LDAP_USERNAME')
+MOZILLA_LDAP_PASSWORD = os.environ.get('MOZILLA_LDAP_PASSWORD')
 
-if not BUILDAPI_USERNAME:
-    raise Exception("You need to specify BUILDAPI_USERNAME variable.")
+if not MOZILLA_LDAP_USERNAME:
+    raise Exception("You need to specify MOZILLA_LDAP_USERNAME variable.")
 
-if not BUILDAPI_PASSWORD:
-    raise Exception("You need to specify BUILDAPI_PASSWORD variable.")
+if not MOZILLA_LDAP_PASSWORD:
+    raise Exception("You need to specify MOZILLA_LDAP_PASSWORD variable.")
 
 IGNORE_SLAVE_TYPES = [
     'try-linux64-ec2',

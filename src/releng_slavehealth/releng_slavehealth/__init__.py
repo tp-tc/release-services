@@ -31,16 +31,17 @@ def init_app(app):
     app.api.register(
         os.path.join(os.path.dirname(__file__), 'api.yml'))
 
-    app.add_url_rule(
-        '/buildapi',
-        'buildapi_proxy',
-        releng_slavehealth.api.buildapi_proxy,
-    )
-    app.add_url_rule(
-        '/buildapi/<path:path>',
-        'buildapi_proxy',
-        releng_slavehealth.api.buildapi_proxy,
-    )
+    for proxy in ["buildapi", "slavealloc", "slaveapi"]:
+        app.add_url_rule(
+            '/' + proxy,
+            proxy + '_proxy',
+            getattr(releng_slavehealth.api, proxy + "_proxy"),
+        )
+        app.add_url_rule(
+            '/' + proxy + '/<path:path>',
+            proxy + '_proxy',
+            getattr(releng_slavehealth.api, proxy + "_proxy"),
+        )
 
     app.add_url_rule('/favicon.ico', 'favicon', favicon)
 
