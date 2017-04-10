@@ -20,13 +20,17 @@ let
     buildInputs =
       fromRequirementsFile ./requirements-dev.txt python.packages;
     propagatedBuildInputs =
-      fromRequirementsFile ./requirements.txt python.packages;
+      [ python.packages."mozilla-cli-common"
+        python.packages."mozilla-backend-common"
+        python.packages."mysqlclient"
+      ];
+    #fromRequirementsFile ./requirements.txt python.packages;
     passthru = {
       update = writeScript "update-${name}" ''
         pushd ${self.src_path}
         ${pypi2nix}/bin/pypi2nix -v \
           -V 3.5 \
-          -E "postgresql" \
+          -E "postgresql mysql zlib openssl" \
           -r requirements.txt \
           -r requirements-dev.txt
         popd

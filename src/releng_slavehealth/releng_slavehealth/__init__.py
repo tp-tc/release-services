@@ -48,10 +48,6 @@ def init_app(app):
     return None
 
 
-if DEBUG and not os.environ.get('DATABASE_URL'):
-    os.environ['DATABASE_URL'] = 'sqlite:///%s' % (
-        os.path.abspath(os.path.join(HERE, '..', 'app.db')))
-
 if not os.environ.get('APP_SETTINGS') and \
        os.path.isfile(APP_SETTINGS):
     os.environ['APP_SETTINGS'] = APP_SETTINGS

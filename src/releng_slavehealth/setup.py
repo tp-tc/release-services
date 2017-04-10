@@ -19,9 +19,9 @@ def read_requirements(file_):
     with open(file_) as f:
         for line in f.readlines():
             line = line.strip()
-            if line.startswith('-e '):
+            if 'egg=' in line:
                 lines.append(line.split('#')[1].split('egg=')[1])
-            elif line.startswith('#') or line.startswith('-'):
+            elif line.startswith('#') or line.startswith('-') or line == '':
                 pass
             else:
                 lines.append(line)
@@ -36,7 +36,12 @@ setup(
     author_email='release@mozilla.com',
     url='https://slavehealth.mozilla-releng.net',
     tests_require=read_requirements('requirements-dev.txt'),
-    install_requires=read_requirements('requirements.txt'),
+    install_requires=[
+        #read_requirements('requirements.txt'),
+        'mozilla-cli-common',
+        'mozilla-backend-common',
+        'mysqlclient',
+    ],
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,

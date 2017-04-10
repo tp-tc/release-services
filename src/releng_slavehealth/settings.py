@@ -10,9 +10,8 @@ import os
 SWAGGER_BASE_URL = os.environ.get('SWAGGER_BASE_URL')
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
-# commented our since database is not needed initially
-# if not DATABASE_URL:
-#     raise Exception("You need to specify DATABASE_URL variable.")
+if not DATABASE_URL:
+    raise Exception("You need to specify DATABASE_URL variable.")
 
 SQLALCHEMY_DATABASE_URI = DATABASE_URL
 SQLALCHEMY_TRACK_MODIFICATIONS = False

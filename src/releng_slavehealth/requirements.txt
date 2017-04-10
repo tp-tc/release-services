@@ -1,2 +1,4 @@
 -e ./../../lib/cli_common[all]#egg=mozilla-cli-common
 -e ./../../lib/backend_common[log,api,cors,auth,db]#egg=mozilla-backend-common
+
+https://github.com/PyMySQL/mysqlclient-python/archive/1.3.10.zip#egg=MySQLdb
