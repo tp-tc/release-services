@@ -63,8 +63,57 @@ It does the following tasks on every run:
 
 
 ``src/shipit_pipeline``
+-----------------------
 
-TODO
+Ship It Pipeline is a service that manages running pipelines. A pipeline is a series of steps that can depend on one
+another and together represent some kind of workflow or process. The pipeline service is responsible for creating
+instances of individual steps on the appropriate step service once that step is runnable. A step is runnable when all
+its dependencies have finished.
+
+A pipeline specifies the backend service URL and inputs for each step in the pipeline. This is so that the pipeline
+service knows how to create specific steps when necessary.
+
+Pipelines and Firefox releases
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+NB. This section was written prior to having any pipelines implemented.
+
+Initially we will integrate the legacy ship-it/release-runner infrastructure with the new pipelines.
+
+1. release-runner will create a set of tasks in Taskcluster as normal
+2. release-runner will then create a new pipeline and POST it to the pipeline service for execution. The pipeline will
+   look roughly like this:
+
+    .. blockdiag::
+
+        blockdiag foo {
+            B [label = "(B)uild"];
+            S [label = "(S)ignoff"];
+            P [label = "(P)ublish"];
+            B -> S -> P;
+        }
+
+
+  B (Build) is a Taskcluster Step that waits for the tasks initially created by
+  release-runner to finish
+
+  S (Signoff) is a Signoff Step that waits for humans to approve the release
+
+  P (Publish) is another Taskcluster Step that runs the in-tree decision task
+  to generate the final set of tasks responsible for publishing the release.
+
+
+3. The pipeline service will evaluate the pipeline and notice that step B is runnable, and so will create an instance
+   of this step on the Taskcluster Step service. The pipeline service will then wait for the Taskcluster step to
+   finish. Note that at this point the Signoff step S hasn't been created. It only exists in the pipeline definition.
+
+4. Once B finishes, the pipeline service will create step S on the Signoff Step service. Again, the pipeline waits here
+   for the signoff step to complete.
+
+5. The Signoff Service will notify people that a signoff is required of them.
+
+6. People sign-off on the step via Ship It's front-end.
+
+7. The pipeline service sees that S is finished, and creates step P via the Taskcluster service.
 
 
 Steps
@@ -76,17 +125,25 @@ Step Services API
 In order to ensure the Pipeline service can successfully managed Steps, each Step Service is required to implement the following API:
 (TODO, flesh this out more)
 
-* /
-** GET - Returns all steps with status (TODO: probably need pagination and filtering here)
-* /{uid}
-** PUT - Create a new Step
-** DELETE - Remove the given Step
-* /{uid}/definition
-** GET Returns the definition of the given step
-* /{uid}/status
-** GET Returns the status of the given step.
-*** Currently, one of: in_progress, success, failure, cancelled
-*** Probably need to add support for including custom service-specific status info.
+- /
+
+ - GET - Returns all steps with status (TODO: probably need pagination and filtering here)
+
+- /{uid}
+
+ - PUT - Create a new Step
+ - DELETE - Remove the given Step
+
+- /{uid}/definition
+
+ - GET Returns the definition of the given step
+
+- /{uid}/status
+
+ - GET Returns the status of the given step.
+
+  - Currently, one of: in_progress, success, failure, cancelled
+  - Probably need to add support for including custom service-specific status info.
 
 Step Services are free to add additional endpoints past the required ones.
 
