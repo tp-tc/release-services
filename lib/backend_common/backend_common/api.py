@@ -5,9 +5,10 @@
 from __future__ import absolute_import
 
 import connexion
-import structlog
+import flask
 import pathlib
-import werkzeug.exceptions
+import structlog
+import werkzeug
 
 
 logger = structlog.get_logger()
@@ -47,7 +48,8 @@ class Api:
         self.__app = app
 
         logger.debug('Setting JSON encoder.')
-        app.json_encoder = connexion.decorators.produces.JSONEncoder
+
+        app.json_encoder =  connexion.apps.flask_app.FlaskJSONEncoder
 
         logger.debug('Setting common error handler for all error codes.')
         for error_code in werkzeug.exceptions.default_exceptions:
@@ -118,7 +120,7 @@ class Api:
             base_url = app.config.get('SWAGGER_BASE_URL')
 
         self.swagger_url = swagger_url
-        self.__api = connexion.api.Api(
+        self.__api = connexion.apis.flask_api.FlaskApi(
             specification=pathlib.Path(swagger_file),
             base_url=base_url,
             arguments=arguments,
@@ -133,7 +135,20 @@ class Api:
             debug=app.debug,
         )
         app.register_blueprint(self.__api.blueprint)
+
+        for code, exception in werkzeug.exceptions.default_exceptions.items():
+            app.register_error_handler(exception, handle_default_exceptions)
+
         return self.__api
+
+
+def handle_default_exceptions(e):
+    return flask.jsonify({
+        'status_code': e.code,
+        'message': str(e),
+        'description': e.description
+    }), e.code
+
 
 
 def init_app(app):

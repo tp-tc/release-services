@@ -4,8 +4,6 @@ let
   inherit (releng_pkgs.pkgs) writeScript stdenv makeWrapper;
 in {
 
-  inherit (releng_pkgs.pkgs) jq gnused coreutils;
-
   pypi2nix = import ./pypi2nix.nix { inherit releng_pkgs; } // {
     update = releng_pkgs.lib.updateFromGitHub {
       owner = "garbas";
@@ -73,15 +71,6 @@ in {
 
   elm2nix = import ./elm2nix.nix { inherit releng_pkgs; };
 
-  mysql2sqlite = import ./mysql2sqlite.nix { inherit releng_pkgs; } // {
-    update = releng_pkgs.lib.updateFromGitHub {
-      owner = "dumblob";
-      repo = "mysql2sqlite";
-      branch = "master";
-      path = "nix/tools/mysql2sqlite.json";
-    };
-  };
-
   mysql2pgsql = (import ./mysql2pgsql.nix { inherit (releng_pkgs) pkgs; }).packages."py-mysql2pgsql" // {
     update = writeScript "update-tools-mysql2pgsql" ''
       pushd nix/tools
@@ -90,6 +79,10 @@ in {
     '';
   };
 
-  createcert = import ./createcert.nix { inherit releng_pkgs; };
+  createcert = (import ./createcert.nix { inherit releng_pkgs; }) // {
+    update = null;
+  };
+
+  mercurial = import ./mercurial.nix { inherit releng_pkgs; };
 
 }

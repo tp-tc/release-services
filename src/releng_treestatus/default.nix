@@ -3,7 +3,7 @@
 
 let
 
-  inherit (releng_pkgs.lib) mkBackend fromRequirementsFile filterSource mysql2sqlite mysql2postgresql;
+  inherit (releng_pkgs.lib) mkBackend fromRequirementsFile filterSource mysql2postgresql;
   inherit (releng_pkgs.pkgs) writeScript;
   inherit (releng_pkgs.pkgs.lib) fileContents;
   inherit (releng_pkgs.tools) pypi2nix;
@@ -32,7 +32,7 @@ let
   self = mkBackend {
     inherit python name dirname;
     inProduction = true;
-    version = fileContents ./../../VERSION;
+    version = fileContents ./VERSION;
     src = filterSource ./. { inherit name; };
     buildInputs =
       fromRequirementsFile ./requirements-dev.txt python.packages;

@@ -16,6 +16,10 @@ APPS=\
 	releng-frontend \
 	shipit-uplift \
 	shipit-bot-uplift \
+	shipit-static-analysis \
+	shipit-code-coverage \
+	shipit-risk-assessment \
+	shipit-pulse-listener \
 	shipit-pipeline \
 	shipit-signoff \
 	shipit-frontend
@@ -23,12 +27,8 @@ APPS=\
 TOOL=
 TOOLS=\
 	awscli \
-	coreutils \
 	createcert \
-	gnused \
-	jq \
 	mysql2pgsql \
-	mysql2sqlite \
 	node2nix \
 	push \
 	pypi2nix \
@@ -179,7 +179,9 @@ develop: nix require-APP
 develop-run: require-APP develop-run-$(APP)
 
 develop-run-SPHINX : nix require-APP
-	nix-shell nix/default.nix -A releng-docs --run "HOST=$(APP_DEV_HOST) PORT=$(APP_DEV_PORT_$(APP)) python run.py"
+	DEBUG=true \
+		nix-shell nix/default.nix -A releng-docs \
+			--run "HOST=$(APP_DEV_HOST) PORT=$(APP_DEV_PORT_$(APP)) python run.py"
 
 develop-run-BACKEND: build-certs nix require-APP
 	$(eval APP_PYTHON=$(subst -,_,$(APP)))
@@ -189,7 +191,7 @@ develop-run-BACKEND: build-certs nix require-APP
 	APP_SETTINGS=$$PWD/src/$(APP_PYTHON)/settings.py \
 	CORS_ORIGINS="*" \
 		nix-shell nix/default.nix -A $(APP) \
-		--run "gunicorn $(APP_PYTHON):app --bind '$(APP_DEV_HOST):$(APP_DEV_PORT_$(APP))' --ca-certs=$$PWD/tmp/ca.crt --certfile=$$PWD/tmp/server.crt --keyfile=$$PWD/tmp/server.key --workers 1 --timeout 3600 --reload --log-file -"
+			--run "gunicorn $(APP_PYTHON):app --bind '$(APP_DEV_HOST):$(APP_DEV_PORT_$(APP))' --ca-certs=$$PWD/tmp/ca.crt --certfile=$$PWD/tmp/server.crt --keyfile=$$PWD/tmp/server.key --workers 1 --timeout 3600 --reload --log-file -"
 
 develop-run-FRONTEND: build-certs nix require-APP
 	nix-shell nix/default.nix --pure -A $(APP) \
@@ -199,19 +201,19 @@ develop-run-releng-docs: develop-run-SPHINX
 develop-run-frontend-common-example: develop-run-FRONTEND
 
 develop-run-releng-frontend: develop-run-FRONTEND
-develop-run-releng-clobberer: require-sqlite develop-run-BACKEND
-develop-run-releng-tooltool: require-sqlite develop-run-BACKEND
+develop-run-releng-clobberer: require-postgres develop-run-BACKEND
+develop-run-releng-tooltool: require-postgres develop-run-BACKEND
 develop-run-releng-treestatus: require-postgres develop-run-BACKEND
-develop-run-releng-mapper: require-sqlite develop-run-BACKEND
-develop-run-releng-archiver: require-sqlite develop-run-BACKEND
+develop-run-releng-mapper: require-postgres develop-run-BACKEND
+develop-run-releng-archiver: require-postgres develop-run-BACKEND
 
 develop-run-shipit-frontend: develop-run-FRONTEND
 develop-run-shipit-uplift: require-postgres develop-run-BACKEND
-develop-run-shipit-pipeline: require-sqlite develop-run-BACKEND
-develop-run-shipit-signoff: require-sqlite develop-run-BACKEND
+develop-run-shipit-pipeline: require-postgres develop-run-BACKEND
+develop-run-shipit-signoff: require-postgres develop-run-BACKEND
 
-develop-run-postgres: build-postgresql require-initdb
-	./result-tool-postgresql/bin/postgres -D $(PWD)/tmp/postgres -h localhost -p $(APP_DEV_POSTGRES_PORT)
+develop-run-postgres: build-pkgs-postgresql require-initdb
+	./result-pkgs-postgresql/bin/postgres -D $(PWD)/tmp/postgres -h localhost -p $(APP_DEV_POSTGRES_PORT)
 
 develop-flask-shell: nix require-APP
 	DEBUG=true \
@@ -253,15 +255,15 @@ deploy-staging-HEROKU: require-APP require-HEROKU build-tool-push build-docker-$
 deploy-staging-S3: \
 			require-AWS \
 			require-APP \
-			build-tool-coreutils \
-			build-tool-gnused \
+			build-pkgs-coreutils \
+			build-pkgs-gnused \
 			build-tool-awscli \
 			build-app-$(APP)
-	$(eval APP_TMP := $(shell ./result-tool-coreutils/bin/mktemp -d --tmpdir=$$PWD/tmp $(APP).XXXXX))
-	./result-tool-coreutils/bin/cp -rf result-$(APP)/* $(APP_TMP)
-	./result-tool-gnused/bin/sed -i "s|font-src 'self';|font-src 'self'; connect-src $(APP_STAGING_CSP_$(APP));|" $(APP_TMP)/index.html
+	$(eval APP_TMP := $(shell ./result-pkgs-coreutils/bin/mktemp -d --tmpdir=$$PWD/tmp $(APP).XXXXX))
+	./result-pkgs-coreutils/bin/cp -rf result-$(APP)/* $(APP_TMP)
+	./result-pkgs-gnused/bin/sed -i "s|font-src 'self';|font-src 'self'; connect-src $(APP_STAGING_CSP_$(APP));|" $(APP_TMP)/index.html
 	@for v in $(APP_STAGING_ENV_$(APP)) ; do \
-		./result-tool-gnused/bin/sed -i "s|<body|<body data-$$v|" $(APP_TMP)/index.html ; \
+		./result-pkgs-gnused/bin/sed -i "s|<body|<body data-$$v|" $(APP_TMP)/index.html ; \
 	done
 	./result-tool-awscli/bin/aws s3 sync \
 		--delete \
@@ -282,6 +284,10 @@ deploy-staging-releng-archiver:        deploy-staging-HEROKU
 deploy-staging-shipit-frontend:        deploy-staging-S3
 deploy-staging-shipit-uplift:          deploy-staging-HEROKU
 deploy-staging-shipit-bot-uplift:   	 # There is no service running, just a hook
+deploy-staging-shipit-pulse-listener:  # There is no service running, just a hook
+deploy-staging-shipit-code-coverage:   # There is no service running, just a hook
+deploy-staging-shipit-static-analysis: # There is no service running, just a triggered task
+deploy-staging-shipit-risk-assessment: # There is no service running, just a triggered task
 deploy-staging-shipit-pipeline:        # deploy-staging-HEROKU
 deploy-staging-shipit-signoff:         # deploy-staging-HEROKU
 
@@ -304,15 +310,15 @@ deploy-production-HEROKU: require-APP require-HEROKU build-tool-push build-docke
 deploy-production-S3: \
 			require-AWS \
 			require-APP \
-			build-tool-coreutils \
-			build-tool-gnused \
+			build-pkgs-coreutils \
+			build-pkgs-gnused \
 			build-tool-awscli \
 			build-app-$(APP)
-	$(eval APP_TMP := $(shell ./result-tool-coreutils/bin/mktemp -d --tmpdir=$$PWD/tmp $(APP).XXXXX))
-	./result-tool-coreutils/bin/cp -rf result-$(APP)/* $(APP_TMP)
-	./result-tool-gnused/bin/sed -i "s|font-src 'self';|font-src 'self'; connect-src $(APP_PRODUCTION_CSP_$(APP));|" $(APP_TMP)/index.html
+	$(eval APP_TMP := $(shell ./result-pkgs-coreutils/bin/mktemp -d --tmpdir=$$PWD/tmp $(APP).XXXXX))
+	./result-pkgs-coreutils/bin/cp -rf result-$(APP)/* $(APP_TMP)
+	./result-pkgs-gnused/bin/sed -i "s|font-src 'self';|font-src 'self'; connect-src $(APP_PRODUCTION_CSP_$(APP));|" $(APP_TMP)/index.html
 	@for v in $(APP_PRODUCTION_ENV_$(APP)) ; do \
-		./result-tool-gnused/bin/sed -i "s|<body|<body data-$$v|" $(APP_TMP)/index.html ; \
+		./result-pkgs-gnused/bin/sed -i "s|<body|<body data-$$v|" $(APP_TMP)/index.html ; \
 	done
 	./result-tool-awscli/bin/aws s3 sync \
 		--delete \
@@ -333,6 +339,10 @@ deploy-production-releng-archiver:     # deploy-production-HEROKU
 deploy-production-shipit-frontend:     deploy-production-S3
 deploy-production-shipit-uplift:       deploy-production-HEROKU
 deploy-production-shipit-bot-uplift:   # There is no service running, just a hook
+deploy-production-shipit-pulse-listener:  # There is no service running, just a hook
+deploy-production-shipit-code-coverage:   # There is no service running, just a hook
+deploy-production-shipit-static-analysis: # There is no service running, just a triggered task
+deploy-production-shipit-risk-assessment: # There is no service running, just a triggered task
 deploy-production-shipit-pipeline:     # deploy-staging-HEROKU
 deploy-production-shipit-signoff:      # deploy-staging-HEROKU
 
@@ -361,8 +371,15 @@ build-tool: require-TOOL build-tool-$(TOOL)
 build-tool-%: nix
 	@nix-build nix/default.nix -A tools.$(subst build-tool-,,$@) -o result-tool-$(subst build-tool-,,$@) --fallback
 
-build-postgresql: nix
-	@nix-build nix/default.nix -A postgresql -o result-tool-postgresql --fallback
+
+
+build-pkgs: build-pkgs-gnused build-pkgs-coreutils build-pkgs-jq
+
+build-pkgs-%: nix
+	@nix-build nix/default.nix -A pkgs.$(subst build-pkgs-,,$@) -o result-pkgs-$(subst build-pkgs-,,$@) --fallback
+
+build-pkgs-postgresql: nix
+	@nix-build nix/default.nix -A postgresql -o result-pkgs-postgresql --fallback
 
 
 build-certs: tmpdir build-tool-createcert
@@ -541,23 +558,17 @@ require-BRANCH:
 		exit 1; \
 	fi
 
-require-initdb: build-postgresql
+require-initdb: build-pkgs-postgresql
 	$(eval PG_DATA := $(PWD)/tmp/postgres)
 	@if [ ! -d $(PG_DATA) ]; then \
-		./result-tool-postgresql/bin/initdb -D $(PG_DATA) --auth=trust; \
+		./result-pkgs-postgresql/bin/initdb -D $(PG_DATA) --auth=trust; \
 	fi
 
-require-postgres: build-postgresql
-	if [ "`./result-tool-postgresql/bin/psql -lqt -p $(APP_DEV_POSTGRES_PORT) | cut -d \| -f 1 | grep $(APP_DEV_DBNAME)| wc -l`" != "1" ]; then \
-		./result-tool-postgresql/bin/createdb -p $(APP_DEV_POSTGRES_PORT) $(APP_DEV_DBNAME); \
+require-postgres: build-pkgs-postgresql
+	if [ "`./result-pkgs-postgresql/bin/psql -lqt -p $(APP_DEV_POSTGRES_PORT) | cut -d \| -f 1 | grep $(APP_DEV_DBNAME)| wc -l`" != "1" ]; then \
+		./result-pkgs-postgresql/bin/createdb -p $(APP_DEV_POSTGRES_PORT) $(APP_DEV_DBNAME); \
 	fi
 	$(eval export DATABASE_URL=postgresql://localhost:$(APP_DEV_POSTGRES_PORT)/services)
 	@echo "Using postgresql dev database $(DATABASE_URL)"
-
-require-sqlite:
-	$(eval export DATABASE_URL=sqlite:///$(PWD)/app.db)
-	@echo "Using sqlite dev database $(DATABASE_URL)"
-
-
 
 all: build-apps build-tools

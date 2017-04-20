@@ -29,7 +29,14 @@ Repository structure
 Quickstart
 ----------
 
-Read :ref:`prerequirements`
+Install Nix:
+
+.. code-block:: bash
+
+    % curl https://raw.githubusercontent.com/mozilla-releng/services/master/nix/setup.sh | sh
+
+You can read more what above ``setup.sh`` script does in :ref:`prerequirements`
+section.
 
 Get code:
 
@@ -65,7 +72,8 @@ Contents
 --------
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 4
+    :includehidden:
 
     prerequirements
     developing

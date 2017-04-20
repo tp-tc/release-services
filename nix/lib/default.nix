@@ -76,7 +76,7 @@ let
 
 in rec {
 
-  inherit (migrate) mysql2sqlite mysql2postgresql;
+  inherit (migrate) mysql2postgresql;
 
   packagesWith = attrName: pkgs':
     builtins.filter
@@ -156,6 +156,7 @@ in rec {
       , taskEnv ? {}
       , scopes ? []
       , cache ? {}
+      , maxRunTime ? 3600
       }:
       { inherit schedule expires deadline;
         metadata = { inherit name description owner emailOnError; };
@@ -164,6 +165,7 @@ in rec {
           payload = mkTaskclusterTaskPayload {
             image = taskImage;
             command = taskCommand;
+            maxRunTime = maxRunTime;
             artifacts = taskArtifacts;
             env = taskEnv;
             cache = cache;
@@ -312,7 +314,6 @@ in rec {
       assert name == null -> exclude != null;
       let
         _include= if include == null then [
-          "/VERSION"
           "/${name}"
           "/tests"
           "/MANIFEST.in"
@@ -468,14 +469,12 @@ in rec {
               --pkg-name nodejs-6_x
 
             # TODO: move this into default.nix
-            ${gnused}/bin/sed -i -e "s| python2||" node-modules.nix
-            ${gnused}/bin/sed -i -e "s| inherit nodejs;| python = pkgs.python2;inherit nodejs;|" node-modules.nix
             ${gnused}/bin/sed -i -e "s| sources.\"elm-0.18| #sources.\"elm-0.18|" node-modules-generated.nix
             ${gnused}/bin/sed -i -e "s| name = \"elm-webpack-loader\";| dontNpmInstall = true;name = \"elm-webpack-loader\";|" node-modules-generated.nix
 
-            #rm -rf elm-stuff
-            #${elmPackages.elm}/bin/elm-package install -y
-            #${elm2nix}/bin/elm2nix elm-packages.nix
+            rm -rf elm-stuff
+            ${elmPackages.elm}/bin/elm-package install -y
+            ${elm2nix}/bin/elm2nix elm-packages.nix
 
             popd
           '';
@@ -566,6 +565,7 @@ in rec {
         ];
         Cmd = [];
       }
+    , dockerContents ? []
     , passthru ? {}
     , inStaging ? true
     , inProduction ? false
@@ -588,17 +588,18 @@ in rec {
           [ releng_pkgs.pkgs.cacert
           ] ++ propagatedBuildInputs;
 
+        preConfigure = ''
+          rm -rf build *.egg-info
+        '';
+
         patchPhase = ''
           # replace synlink with real file
-          rm VERSION
-          echo ${version} > VERSION
 
           # generate MANIFEST.in to make sure every file is included
           rm -f MANIFEST.in
           cat > MANIFEST.in <<EOF
           recursive-include ${dirname}/*
 
-          include VERSION
           include ${dirname}/*.ini
           include ${dirname}/*.json
           include ${dirname}/*.mako
@@ -660,7 +661,7 @@ in rec {
 
           docker = mkDocker {
             inherit name version;
-            contents = [ busybox self ];
+            contents = [ busybox self ] ++ dockerContents;
             config = dockerConfig;
           };
         } // passthru;
@@ -710,4 +711,7 @@ in rec {
       REPO
       echo
     '';
+
+  mkRustPlatform = (import ./rust.nix) releng_pkgs.pkgs;
+
 }
