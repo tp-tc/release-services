@@ -21,7 +21,7 @@ class TaskclusterClient(object):
         Build Taskcluster credentials options
         """
 
-        if self.client_id and self.access_token:
+        if self.client_id is not None and self.access_token is not None:
             # Use provided credentials
             tc_options = {
                 'credentials': {
@@ -94,6 +94,35 @@ class TaskclusterClient(object):
                 raise Exception('Missing value {} in Taskcluster secret value {}'.format(req, path))  # noqa
 
         return secrets
+
+    def get_hook_artifact(self, hook_group_id, hook_id, artifact_name):
+        """
+        Load an artifact from the last execution of an hook
+        """
+
+        # Get last run from hook
+        hooks = self.get_hooks_service()
+        hook_status = hooks.getHookStatus(hook_group_id, hook_id)
+        last_fire = hook_status.get('lastFire')
+        if last_fire is None:
+            raise Exception('Hook did not fire')
+        task_id = last_fire['taskId']
+
+        # Get successful run for this task
+        queue = self.get_queue_service()
+        task_status = queue.status(task_id)
+        if task_status['status']['state'] != 'completed':
+            raise Exception('Task {} is not completed'.format(task_id))
+        run_id = None
+        for run in task_status['status']['runs']:
+            if run['state'] == 'completed':
+                run_id = run['runId']
+                break
+        if run_id is None:
+            raise Exception('No completed run found')
+
+        # Load artifact from task run
+        return queue.getArtifact(task_id, run_id, artifact_name)
 
     def notify_email(self, address, subject, content, template='simple'):
         """

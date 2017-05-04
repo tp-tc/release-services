@@ -56,37 +56,37 @@ paths:
             type: array
             items:
               $ref: '#/definitions/StepResult'
-          examples:
-            application/json: |-
-              [
-                {
-                  "uid": "1001",
-                  "state": "failed",
-                  "message": "Waiting for sign-offs",
-                  "signees": [],
-                  "output": ""
-                },
-                {
-                  "uid": "1002",
-                  "state": "completed",
-                  "message": "Waiting for sign-offs",
-                  "signees": [
-                    "example3@mozilla.com",
-                    "example4@mozilla.com"
-                  ],
-                  "output": ""
-                },
-                {
-                  "uid": "1003",
-                  "state": "running",
-                  "message": "Waiting for sign-offs",
-                  "signees": [
-                    "example1@mozilla.com",
-                    "example2@mozilla.com"
-                  ],
-                  "output": ""
-                }
-              ]
+#          examples:
+#            application/json: |-
+#              [
+#                {
+#                  "uid": "1001",
+#                  "state": "failed",
+#                  "message": "Waiting for sign-offs",
+#                  "signees": [],
+#                  "output": ""
+#                },
+#                {
+#                  "uid": "1002",
+#                  "state": "completed",
+#                  "message": "Waiting for sign-offs",
+#                  "signees": [
+#                    "example3@mozilla.com",
+#                    "example4@mozilla.com"
+#                  ],
+#                  "output": ""
+#                },
+#                {
+#                  "uid": "1003",
+#                  "state": "running",
+#                  "message": "Waiting for sign-offs",
+#                  "signees": [
+#                    "example1@mozilla.com",
+#                    "example2@mozilla.com"
+#                  ],
+#                  "output": ""
+#                }
+#              ]
 
   /step/{uid}/status:
 
@@ -100,19 +100,19 @@ paths:
           description: "Status of a step"
           schema:
             $ref: '#/definitions/StepResult'
-          examples:
-            application/json: |-
-              {
-                "uid": "1003",
-                "state": "running",
-                "message": "Waiting for sign-offs",
-                "signees": [
-                  "example1@mozilla.com",
-                  "example2@mozilla.com"
-                ],
-                "created": 
-                "completed":
-              }
+#          examples:
+#            application/json: |-
+#              {
+#                "uid": "1003",
+#                "state": "running",
+#                "message": "Waiting for sign-offs",
+#                "signees": [
+#                  "example1@mozilla.com",
+#                  "example2@mozilla.com"
+#                ],
+#                "created": 
+#                "completed":
+#              }
 
 
   /step/{uid}:
@@ -176,6 +176,8 @@ paths:
           description: "User lacks permission to sign this step"
         "404":
           description: "Step not found"
+        "409":
+          description: "Step already signed by user"
 
     # A completed policy cannot be undone this way, only 
     # removing an existing signature from an incomplete step.
@@ -253,7 +255,9 @@ definitions:
       method:
         type: "string"
       definition:
-        type: object
+        type: array
+        items:
+          type: object
 
   Output:
     type: "object"
@@ -278,4 +282,3 @@ parameters:
     description: "Filter by signoff step state"
     required: false
     type: "string"
-  

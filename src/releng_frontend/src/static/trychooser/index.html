@@ -106,11 +106,6 @@
                 <span id="build_win32" class="build_queue">N/A</span>
             </li>
             <li>
-                <label><input type="checkbox" name="platform" value="win32-clang">win32-clang</label>
-                <span id="test_win32-clang" class="test_queue">N/A</span>
-                <span id="build_win32-clang" class="build_queue">N/A</span>
-            </li>
-            <li>
                 <label><input type="checkbox" name="platform" value="win32-st-an">win32 static analysis</label>
                 <span id="test_win32-st-an" class="test_queue">N/A</span>
                 <span id="build_win32-st-an" class="build_queue">N/A</span>
@@ -119,11 +114,6 @@
                 <label><input type="checkbox" name="platform" value="win64">win64</label>
                 <span id="test_win64" class="test_queue">N/A</span>
                 <span id="build_win64" class="build_queue">N/A</span>
-            </li>
-            <li>
-                <label><input type="checkbox" name="platform" value="win64-clang">win64-clang</label>
-                <span id="test_win64-clang" class="test_queue">N/A</span>
-                <span id="build_win64-clang" class="build_queue">N/A</span>
             </li>
             <li>
                 <label><input type="checkbox" name="platform" value="win64-st-an">win64 static analysis</label>
@@ -139,11 +129,6 @@
                 <label><input type="checkbox" name="platform" value="android-api-15-gradle-dependencies">android api 15+ gradle deps</label>
                 <span id="test_android-api-15-gradle" class="test_queue">N/A</span>
                 <span id="build_android-api-15-gradle" class="build_queue">N/A</span>
-            </li>
-            <li>
-                <label><input type="checkbox" name="platform" value="android-api-15-frontend">android api 15+ frontend</label>
-                <span id="test_android-api-15-frontend" class="test_queue">N/A</span>
-                <span id="build_android-api-15-frontend" class="build_queue">N/A</span>
             </li>
             <li>
                 <label><input type="checkbox" name="platform" value="android-x86">android-x86 (Android 4.2)</label>
@@ -168,11 +153,6 @@
                 <span id="build_sm-compacting" class="build_queue">N/A</span>
             </li>
             <li>
-                <label><input type="checkbox" name="platform" value="sm-generational">Spidermonkey generational</label>
-                <span id="test_sm-generational" class="test_queue">N/A</span>
-                <span id="build_sm-generational" class="build_queue">N/A</span>
-            </li>
-            <li>
                 <label><input type="checkbox" name="platform" value="sm-plain">Spidermonkey plain</label>
                 <span id="test_sm-plain" class="test_queue">N/A</span>
                 <span id="build_sm-plain" class="build_queue">N/A</span>
@@ -181,11 +161,6 @@
                 <label><input type="checkbox" name="platform" value="sm-rootanalysis">Spidermonkey rootanalysis</label>
                 <span id="test_sm-rootanalysis" class="test_queue">N/A</span>
                 <span id="build_sm-rootanalysis" class="build_queue">N/A</span>
-            </li>
-            <li>
-                <label><input type="checkbox" name="platform" value="sm-warnaserr">Spidermonkey warnaserr</label>
-                <span id="test_sm-warnaserr" class="test_queue">N/A</span>
-                <span id="build_sm-warnaserr" class="build_queue">N/A</span>
             </li>
             </ul>
             <p>Looking for PGO builds? See <a href="https://wiki.mozilla.org/ReleaseEngineering/TryChooser#What_if_I_want_PGO_for_my_build">this page</a>.</p>
@@ -257,15 +232,11 @@
             <label><input type="checkbox" class="group-selector all-selector">All</label>
             <label><input type="checkbox" class="group-selector none-selector" CHECKED>None</label>
             <ul>
-                <li><label><input type="checkbox" value="reftest">reftest</label></li>
-                <li><label><input type="checkbox" value="reftest-1">reftest-1<span class="info">(linux only)</span></label></li>
-                <li><label><input type="checkbox" value="reftest-2">reftest-2<span class="info">(linux only)</span></label></li>
-                <li><label><input type="checkbox" value="reftest-3">reftest-3<span class="info">(linux debug only)</span></label></li>
-                <li><label><input type="checkbox" value="reftest-4">reftest-4<span class="info">(linux debug only)</span></label></li>
-                <li><label><input type="checkbox" value="reftest-e10s">reftest-e10s <span class="info">(linux/win7 only)</span></label></li>
+                <li><label><input type="checkbox" value="reftest">reftest <span class="info">(includes e10s and no-accel)</span></label></li>
+                <li><label><input type="checkbox" value="reftest-e10s">reftest-e10s</span></label></li>
                 <li><label><input type="checkbox" value="reftest-no-accel">reftest-no-accel <span class="info">(linux/win7/8 only)</span></label></li>
                 <li><label><input type="checkbox" value="crashtest">crashtest</label></li>
-                <li><label><input type="checkbox" value="crashtest-e10s">crashtest-e10s <span class="info">(linux/win7 only)</span></label></li>
+                <li><label><input type="checkbox" value="crashtest-e10s">crashtest-e10s</span></label></li>
                 <li><label><input type="checkbox" value="xpcshell">xpcshell</label></li>
                 <li><label><input type="checkbox" value="jsreftest">jsreftest</label></li>
                 <li><label><input type="checkbox" value="marionette">marionette</label></li>
@@ -293,6 +264,11 @@
                     <li><label><input type="checkbox" value="mochitest-3">mochitest-3</label></li>
                     <li><label><input type="checkbox" value="mochitest-4">mochitest-4</label></li>
                     <li><label><input type="checkbox" value="mochitest-5">mochitest-5</label></li>
+                    <li><label><input type="checkbox" value="mochitest-6">mochitest-6</label></li>
+                    <li><label><input type="checkbox" value="mochitest-7">mochitest-7</label></li>
+                    <li><label><input type="checkbox" value="mochitest-8">mochitest-8</label></li>
+                    <li><label><input type="checkbox" value="mochitest-9">mochitest-9</label></li>
+                    <li><label><input type="checkbox" value="mochitest-10">mochitest-10</label></li>
                     <li><label><input type="checkbox" value="mochitest-gl">mochitest-gl (webgl)</label></li>
                     <li><label><input type="checkbox" value="mochitest-bc">mochitest-bc (browser chrome)</label></li>
                     <li>
@@ -302,7 +278,8 @@
                     </li>
                     <li><label><input type="checkbox" value="mochitest-clipboard">mochitest-clipboard</label></li>
                     <li><label><input type="checkbox" value="mochitest-dt">mochitest-dt (devtools)</label></li>
-                    <li><label><input type="checkbox" value="mochitest-o">mochitest-o (other)</label></li>
+                    <li><label><input type="checkbox" value="mochitest-a11y">mochitest-ally</label></li>
+                    <li><label><input type="checkbox" value="mochitest-chrome">mochitest-chrome</label></li>
                     <li><label><input type="checkbox" value="mochitest-media">mochitest-mda (dom/media)</label></li>
                     <li><label><input type="checkbox" value="mochitest-jetpack">mochitest-jetpack</label></li>
                     <li><label><input type="checkbox" value="mochitest-e10s-1">mochitest-e10s-1</label></li>

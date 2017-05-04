@@ -79,11 +79,16 @@ let
         ];
         deadline = "5 hours";
         maxRunTime = 18000;
+        taskArtifacts = {
+          "public/coverage_by_dir.json" = {
+            type = "file";
+            path = "/coverage_by_dir.json";
+          };
+        };
       };
 
   self = mkPython {
     inherit python name dirname;
-    inProduction = true;
     version = fileContents ./VERSION;
     src = filterSource ./. { inherit name; };
     buildInputs =

@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from backend_common.auth import auth
 from backend_common.db import db
 from backend_common import log
+from cli_common.taskcluster import TaskclusterClient
 from shipit_uplift.helpers import gravatar
 from shipit_uplift.models import (
     BugAnalysis, BugResult, Contributor, BugContributor, PatchStatus
@@ -19,7 +20,7 @@ from shipit_uplift.serializers import (
     serialize_analysis, serialize_bug, serialize_contributor,
     serialize_patch_status
 )
-from shipit_uplift import SCOPES_USER, SCOPES_BOT, SCOPES_ADMIN
+from shipit_uplift.flask import SCOPES_USER, SCOPES_BOT, SCOPES_ADMIN
 
 
 logger = log.get_logger('shipit_uplift.api')
@@ -364,3 +365,21 @@ def create_patch_status(bugzilla_id):
         }, 409  # Conflict
 
     return serialize_patch_status(ps)
+
+
+def load_hook_artifact(group, hook, artifact):
+    """
+    Serve an artifact from the last run of
+    a specified source hook
+    Only support anonymous & public artifacts for now
+    This is a public API: no authentication is needed
+    """
+    try:
+        artifact = 'public/' + artifact
+        client = TaskclusterClient('', '')  # anonymous
+        return client.get_hook_artifact(group, hook, artifact)
+    except Exception as e:
+        return {
+            'error_title': 'Failed loading artifact',
+            'error_message': str(e),
+        }, 500
