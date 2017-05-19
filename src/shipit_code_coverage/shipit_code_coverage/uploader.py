@@ -1,8 +1,9 @@
 import gzip
-import time
 import requests
 
 from cli_common.log import get_logger
+
+from shipit_code_coverage import utils
 
 
 logger = get_logger(__name__)
@@ -15,31 +16,46 @@ def coveralls(data):
 
     try:
         result = r.json()
-        logger.info('Uploaded build to Coveralls: %s' % r.text)
+        logger.info('Uploaded report to Coveralls', report=r.text)
     except ValueError:
-        raise Exception('Failure to submit data. Response [%s]: %s' % (r.status_code, r.text))  # NOQA
+        raise Exception('Failure to submit data. Response [%s]: %s' % (r.status_code, r.text))
 
-    # Wait until the build has been injested by Coveralls.
-    url = result['url'] + '.json'
-    while True:
-        r = requests.get(url)
-        result = r.json()
-        if result['covered_percent']:
-            break
-        time.sleep(60)
+    return result['url'] + '.json'
 
 
-def codecov(data, commit_sha, token):
-    r = requests.post('https://codecov.io/upload/v4?commit=%s&token=%s&build=1&job=1&service=custom' % (commit_sha, token), headers={  # NOQA
+def coveralls_wait(job_url):
+    def check_coveralls_job():
+        r = requests.get(job_url)
+
+        if r.json()['covered_percent']:
+            return True
+
+        return False
+
+    if utils.wait_until(check_coveralls_job, 60) is None:
+        raise Exception('Coveralls took too much time to injest data.')
+
+
+def codecov(data, commit_sha, token, flags=None):
+    params = {
+        'commit': commit_sha,
+        'token': token,
+        'service': 'custom',
+    }
+
+    if flags is not None:
+        params['flags'] = ','.join(flags)
+
+    r = requests.post('https://codecov.io/upload/v4', params=params, headers={
         'Accept': 'text/plain',
     })
 
     if r.status_code != requests.codes.ok:
-        raise Exception('Failure to submit data. Response [%s]: %s' % (r.status_code, r.text))  # NOQA
+        raise Exception('Failure to submit data. Response [%s]: %s' % (r.status_code, r.text))
 
     lines = r.text.splitlines()
 
-    logger.info('Codecov report URL: %s' % lines[0])
+    logger.info('Uploaded report to Codecov', report=lines[0])
 
     data += b'\n<<<<<< EOF'
 
@@ -50,4 +66,4 @@ def codecov(data, commit_sha, token):
     })
 
     if r.status_code != requests.codes.ok:
-        raise Exception('Failure to upload data to S3. Response [%s]: %s' % (r.status_code, r.text))  # NOQA
+        raise Exception('Failure to upload data to S3. Response [%s]: %s' % (r.status_code, r.text))

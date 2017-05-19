@@ -1,166 +1,182 @@
+import errno
 import os
 from datetime import datetime
 import requests
-import subprocess
 import hglib
 
 from cli_common.taskcluster import TaskclusterClient
 from cli_common.log import get_logger
+from cli_common.utils import run_command, run_gecko_command
 
-from shipit_code_coverage import taskcluster
-from shipit_code_coverage import uploader
-from shipit_code_coverage import coverage_by_dir
+from shipit_code_coverage import coverage_by_dir, taskcluster, uploader, utils
 
 
 logger = get_logger(__name__)
 
-REPO_CENTRAL = 'https://hg.mozilla.org/mozilla-central'
-REPO_DIR = 'mozilla-central'
 COVERALLS_TOKEN_FIELD = 'SHIPIT_CODE_COVERAGE_COVERALLS_TOKEN'
 CODECOV_TOKEN_FIELD = 'SHIPIT_CODE_COVERAGE_CODECOV_TOKEN'
 
 
-def is_coverage_task(task):
-    return task['task']['metadata']['name'].startswith('test-linux64-ccov')
+class CodeCov(object):
+    def download_coverage_artifacts(self, build_task_id):
+        try:
+            os.mkdir('ccov-artifacts')
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise e
 
+        task_data = taskcluster.get_task_details(build_task_id)
 
-def download_coverage_artifacts(build_task_id):
-    try:
-        os.mkdir('ccov-artifacts')
-    except:
-        pass
-
-    task_data = taskcluster.get_task_details(build_task_id)
-
-    artifacts = taskcluster.get_task_artifacts(build_task_id)
-    for artifact in artifacts:
-        if 'target.code-coverage-gcno.zip' in artifact['name']:
-            taskcluster.download_artifact(build_task_id, artifact)
-
-    tasks = taskcluster.get_tasks_in_group(task_data['taskGroupId'])
-    test_tasks = [t for t in tasks if is_coverage_task(t)]
-    for test_task in test_tasks:
-        test_task_id = test_task['status']['taskId']
-        artifacts = taskcluster.get_task_artifacts(test_task_id)
+        artifacts = taskcluster.get_task_artifacts(build_task_id)
         for artifact in artifacts:
-            if 'code-coverage-gcda.zip' in artifact['name']:
-                taskcluster.download_artifact(test_task_id, artifact)
+            if 'target.code-coverage-gcno.zip' in artifact['name']:
+                taskcluster.download_artifact(build_task_id, '', artifact)
 
+        all_suites = set()
 
-def get_github_commit(mercurial_commit):
-    url = 'https://api.pub.build.mozilla.org/mapper/gecko-dev/rev/hg/%s'
-    r = requests.get(url % mercurial_commit)
+        tasks = taskcluster.get_tasks_in_group(task_data['taskGroupId'])
+        test_tasks = [t for t in tasks if taskcluster.is_coverage_task(t)]
+        for test_task in test_tasks:
+            suite_name = taskcluster.get_suite_name(test_task)
+            all_suites.add(suite_name)
+            test_task_id = test_task['status']['taskId']
+            artifacts = taskcluster.get_task_artifacts(test_task_id)
+            for artifact in artifacts:
+                if 'code-coverage-gcda.zip' in artifact['name']:
+                    taskcluster.download_artifact(test_task_id, suite_name, artifact)
 
-    return r.text.split(' ')[0]
+        self.suites = list(all_suites)
+        self.suites.sort()
 
+    def get_github_commit(self, mercurial_commit):
+        url = 'https://api.pub.build.mozilla.org/mapper/gecko-dev/rev/hg/%s'
 
-def generate_info(commit_sha, coveralls_token):
-    files = os.listdir('ccov-artifacts')
-    ordered_files = []
-    for fname in files:
-        if not fname.endswith('.zip'):
-            continue
+        def get_commit():
+            r = requests.get(url % mercurial_commit)
 
-        if 'gcno' in fname:
-            ordered_files.insert(0, 'ccov-artifacts/' + fname)
+            if r.status_code == requests.codes.ok:
+                return r.text.split(' ')[0]
+
+            return None
+
+        ret = utils.wait_until(get_commit)
+        if ret is None:
+            raise Exception('Mercurial commit is not available yet on mozilla/gecko-dev.')
+        return ret
+
+    def generate_info(self, commit_sha, coveralls_token, suite=None):
+        files = os.listdir('ccov-artifacts')
+        ordered_files = []
+        for fname in files:
+            if not fname.endswith('.zip'):
+                continue
+
+            if 'gcno' in fname:
+                ordered_files.insert(0, 'ccov-artifacts/' + fname)
+            elif suite is None or suite in fname:
+                ordered_files.append('ccov-artifacts/' + fname)
+
+        cmd = [
+          'grcov',
+          '-z',
+          '-t', 'coveralls',
+          '-s', self.repo_dir,
+          '-p', '/home/worker/workspace/build/src/',
+          '--ignore-dir', 'gcc',
+          '--ignore-not-existing',
+          '--service-name', 'TaskCluster',
+          '--service-number', datetime.today().strftime('%Y%m%d'),
+          '--commit-sha', commit_sha,
+          '--token', coveralls_token,
+        ]
+
+        if suite is not None:
+            cmd.extend(['--service-job-number', str(self.suites.index(suite) + 1)])
         else:
-            ordered_files.append('ccov-artifacts/' + fname)
+            cmd.extend(['--service-job-number', '1'])
 
-    cmd = [
-      'grcov',
-      '-z',
-      '-t', 'coveralls',
-      '-s', REPO_DIR,
-      '-p', '/home/worker/workspace/build/src/',
-      '--ignore-dir', 'gcc',
-      '--ignore-not-existing',
-      '--service-name', 'TaskCluster',
-      '--service-number', datetime.today().strftime('%Y%m%d'),
-      '--service-job-number', '1',
-      '--commit-sha', commit_sha,
-      '--token', coveralls_token,
-    ]
-    cmd.extend(ordered_files)
+        cmd.extend(ordered_files)
 
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    (output, err) = p.communicate()
+        return run_command(cmd, os.getcwd())
 
-    if p.returncode != 0:
-        raise Exception('Error while running grcov:\n' + err.decode('utf-8'))
+    def clone_mozilla_central(self, revision):
+        shared_dir = self.repo_dir + '-shared'
+        cmd = hglib.util.cmdbuilder('robustcheckout',
+                                    'https://hg.mozilla.org/mozilla-central',
+                                    self.repo_dir,
+                                    purge=True,
+                                    sharebase=shared_dir,
+                                    branch=b'tip')
 
-    return output
+        cmd.insert(0, hglib.HGPATH)
+        proc = hglib.util.popen(cmd)
+        out, err = proc.communicate()
+        if proc.returncode:
+            raise hglib.error.CommandError(cmd, proc.returncode, out, err)
 
+        hg = hglib.open(self.repo_dir)
 
-def clone_mozilla_central(revision):
-    shared_dir = REPO_DIR + '-shared'
-    cmd = hglib.util.cmdbuilder('robustcheckout',
-                                REPO_CENTRAL,
-                                REPO_DIR,
-                                purge=True,
-                                sharebase=shared_dir,
-                                branch=b'tip')
+        hg.update(rev=revision, clean=True)
 
-    cmd.insert(0, hglib.HGPATH)
-    proc = hglib.util.popen(cmd)
-    out, err = proc.communicate()
-    if proc.returncode:
-        raise hglib.error.CommandError(cmd, proc.returncode, out, err)
+    def build_files(self):
+        with open(os.path.join(self.repo_dir, '.mozconfig'), 'w') as f:
+            f.write('mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-firefox')
 
-    hg = hglib.open(REPO_DIR)
+        run_gecko_command(['./mach', 'configure'], self.repo_dir)
+        run_gecko_command(['./mach', 'build', 'pre-export'], self.repo_dir)
+        run_gecko_command(['./mach', 'build', 'export'], self.repo_dir)
 
-    hg.update(rev=revision, clean=True)
+    def go(self):
+        task_id = taskcluster.get_last_task()
 
+        task_data = taskcluster.get_task_details(task_id)
+        revision = task_data['payload']['env']['GECKO_HEAD_REV']
+        logger.info('Mercurial revision', revision=revision)
 
-def run_command(cmd):
-    """
-    Run a command in the repo through subprocess
-    """
-    # Use gecko-env to run command
-    cmd = ['gecko-env', ] + cmd
+        self.download_coverage_artifacts(task_id)
 
-    # Run command with env
-    logger.info('Running repo command', cmd=' '.join(cmd))
-    proc = subprocess.Popen(cmd, cwd=REPO_DIR)
-    exit = proc.wait()
+        self.clone_mozilla_central(revision)
+        self.build_files()
 
-    if exit != 0:
-        raise Exception('Invalid exit code for command {}: {}'.format(cmd, exit))  # NOQA
+        commit_sha = self.get_github_commit(revision)
+        logger.info('GitHub revision', revision=commit_sha)
 
+        coveralls_jobs = []
 
-def build_files():
-    with open(os.path.join(REPO_DIR, '.mozconfig'), 'w') as f:
-        f.write('mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-firefox')
+        # TODO: Process suites in parallel.
+        # While we are uploading results for a suite, we can start to process the next one.
+        # TODO: Reenable when Coveralls and/or Codecov will be able to properly handle the load.
+        '''for suite in self.suites:
+            output = self.generate_info(commit_sha, self.coveralls_token, suite)
 
-    run_command(['./mach', 'configure'])
-    run_command(['./mach', 'build', 'pre-export'])
-    run_command(['./mach', 'build', 'export'])
+            logger.info('Suite report generated', suite=suite)
 
+            coveralls_jobs.append(uploader.coveralls(output))
+            uploader.codecov(output, commit_sha, self.codecov_token, [suite.replace('-', '_')])'''
 
-def go(secrets, client_id=None, client_token=None):
-    tc_client = TaskclusterClient(client_id, client_token)
+        output = self.generate_info(commit_sha, self.coveralls_token)
 
-    required_fields = [COVERALLS_TOKEN_FIELD, CODECOV_TOKEN_FIELD]
-    secrets = tc_client.get_secrets(secrets, required_fields)
+        coveralls_jobs.append(uploader.coveralls(output))
+        uploader.codecov(output, commit_sha, self.codecov_token)
 
-    coveralls_token = secrets[COVERALLS_TOKEN_FIELD]
-    codecov_token = secrets[CODECOV_TOKEN_FIELD]
+        # Wait until the build has been injested by Coveralls.
+        for coveralls_job in coveralls_jobs:
+            uploader.coveralls_wait(coveralls_job)
 
-    task_id = taskcluster.get_last_task()
+        coverage_by_dir.generate(self.repo_dir)
 
-    task_data = taskcluster.get_task_details(task_id)
-    revision = task_data['payload']['env']['GECKO_HEAD_REV']
-    logger.info('Revision %s' % revision)
-    commit_sha = get_github_commit(revision)
-    logger.info('GitHub revision %s' % commit_sha)
+    def __init__(self, cache_root, secrets, client_id=None, client_token=None):
+        # List of test-suite, sorted alphabetically.
+        # This way, the index of a suite in the array should be stable enough.
+        self.suites = []
 
-    download_coverage_artifacts(task_id)
+        assert os.path.isdir(cache_root), "Cache root {} is not a dir.".format(cache_root)
+        self.repo_dir = os.path.join(cache_root, 'mozilla-central')
 
-    clone_mozilla_central(revision)
-    build_files()
+        tc_client = TaskclusterClient(client_id, client_token)
 
-    output = generate_info(commit_sha, coveralls_token)
+        required_fields = [COVERALLS_TOKEN_FIELD, CODECOV_TOKEN_FIELD]
+        secrets = tc_client.get_secrets(secrets, required_fields)
 
-    uploader.coveralls(output)
-    uploader.codecov(output, commit_sha, codecov_token)
-
-    coverage_by_dir.generate(REPO_DIR)
+        self.coveralls_token = secrets[COVERALLS_TOKEN_FIELD]
+        self.codecov_token = secrets[CODECOV_TOKEN_FIELD]
