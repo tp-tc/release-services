@@ -17,7 +17,7 @@ let
 
   mkBot = branch:
     let
-      cacheKey = "shipit-static-analysis-" + branch;
+      cacheKey = "services-" + branch + "-shipit-static-analysis";
       secretsKey = "repo:github.com/mozilla-releng/services:branch:" + branch;
       hook = mkTaskclusterHook {
         name = "Static analysis automated tests";
@@ -28,10 +28,7 @@ let
           ("secrets:get:" + secretsKey)
 
           # Send emails to relman
-          "notify:email:jan@mozilla.com"
-          "notify:email:andi@mozilla.com"
-          "notify:email:marco@mozilla.com"
-          "notify:email:sledru@mozilla.com"
+          "notify:email:*"
 
           # Used by cache
           ("docker-worker:cache:" + cacheKey)
@@ -45,7 +42,6 @@ let
         };
         taskCommand = [
           "/bin/shipit-static-analysis"
-          "$REVISIONS"
           "--taskcluster-secret"
           secretsKey
           "--cache-root"

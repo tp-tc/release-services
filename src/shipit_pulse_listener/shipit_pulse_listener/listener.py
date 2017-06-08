@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from cli_common.pulse import run_consumer
 from cli_common.log import get_logger
 from shipit_pulse_listener.hook import Hook
@@ -79,11 +80,19 @@ class PulseListener(object):
     """
     Listen to pulse messages and trigger new tasks
     """
-    def __init__(self, pulse_user, pulse_password, pulse_listener_hooks):
+    def __init__(self,
+                 pulse_user,
+                 pulse_password,
+                 pulse_listener_hooks,
+                 taskcluster_client_id=None,
+                 taskcluster_access_token=None,
+                 ):
 
         self.pulse_user = pulse_user
         self.pulse_password = pulse_password
         self.pulse_listener_hooks = pulse_listener_hooks
+        self.taskcluster_client_id = taskcluster_client_id
+        self.taskcluster_access_token = taskcluster_access_token
 
     def run(self):
 
@@ -92,13 +101,18 @@ class PulseListener(object):
             self.build_hook(conf)
             for conf in self.pulse_listener_hooks
         ]
+        if not hooks:
+            raise Exception('No hooks created')
 
         # Run hooks pulse listeners together
         # but only use hoks with active definitions
         consumers = [
             hook.connect_pulse(self.pulse_user, self.pulse_password)
             for hook in hooks
-            if hook.connect_taskcluster()
+            if hook.connect_taskcluster(
+                self.taskcluster_client_id,
+                self.taskcluster_access_token,
+            )
         ]
         run_consumer(asyncio.gather(*consumers))
 

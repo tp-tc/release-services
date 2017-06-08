@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -43,6 +44,8 @@ def main(taskcluster_secret,
     pl = PulseListener(secrets['PULSE_USER'],
                        secrets['PULSE_PASSWORD'],
                        secrets['PULSE_LISTENER_HOOKS'],
+                       taskcluster_client_id,
+                       taskcluster_access_token,
                        )
     click.echo('Listening to pulse messages...')
     pl.run()

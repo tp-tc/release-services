@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -8,12 +9,11 @@ import datetime
 import pytz
 import random
 import re
-
-from flask import current_app
+import flask
 
 
 def get_region_and_bucket(region):
-    regions = current_app.config['TOOLTOOL_REGIONS']
+    regions = flask.current_app.config['TOOLTOOL_REGIONS']
 
     if region and region in regions:
         return region, regions[region]

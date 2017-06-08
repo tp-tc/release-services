@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -18,6 +19,24 @@ REPO_CENTRAL = b'https://hg.mozilla.org/mozilla-central'
 REPO_REVIEW = b'https://reviewboard-hg.mozilla.org/gecko'
 
 REGEX_HEADER = re.compile(r'^(.+):(\d+):(\d+): (warning|error|note): (.*)\n', re.MULTILINE)
+
+ISSUE_MARKDOWN = '''
+## {type}
+**Message**: {message}
+**Location**: {location}
+```
+{body}
+```
+{notes}
+'''
+
+ISSUE_NOTE_MARKDOWN = '''
+**Note**: {message}
+**Location**: {location}
+```
+{body}
+```
+'''
 
 
 class Issue(object):
@@ -42,19 +61,19 @@ class Issue(object):
         return self.type in ('warning', 'error')
 
     def as_markdown(self):
-        out = [
-            '# {} : {}'.format(self.type, self.path),
-            '**Position**: {}:{}'.format(self.line, self.char),
-            '**Snippet**: {}'.format(self.message),
-            '',
-        ]
-        out += [
-            '* note on {} at {}:{} : {}'.format(
-                n.path, n.line, n.char, n.message
-            )
-            for n in self.notes
-        ]
-        return '\n'.join(out)
+        return ISSUE_MARKDOWN.format(
+            type=self.type,
+            message=self.message,
+            location="{}:{}:{}".format(self.path, self.line, self.char),
+            body=self.body,
+            notes='\n'.join([
+                ISSUE_NOTE_MARKDOWN.format(
+                    message=n.message,
+                    location='{}:{}:{}'.format(n.path, n.line, n.char),
+                    body=n.body,
+                ) for n in self.notes
+            ]),
+        )
 
 
 class Workflow(object):
@@ -141,6 +160,7 @@ class Workflow(object):
         logger.info('Run clang-tidy...')
         checks = [
             '-*',
+            'clang-analyzer-deadcode.DeadStores',
             'modernize-loop-convert',
             'modernize-use-auto',
             'modernize-use-default',
@@ -148,6 +168,8 @@ class Workflow(object):
             'modernize-use-bool-literals',
             'modernize-use-override',
             'modernize-use-nullptr',
+            'mozilla-*',
+            'readability-else-after-return',
         ]
         cmd = [
             'run-clang-tidy.py',

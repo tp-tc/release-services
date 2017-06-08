@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -20,7 +21,7 @@ def read_requirements(file_):
     with open(file_) as f:
         for line in f.readlines():
             line = line.strip()
-            if line.startswith('-e '):
+            if line.startswith('-e ') or line.startswith('http://') or line.startswith('https://'):
                 lines.append(line.split('#')[1].split('egg=')[1])
             elif line.startswith('#') or line.startswith('-'):
                 pass

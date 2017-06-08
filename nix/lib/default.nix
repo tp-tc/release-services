@@ -547,6 +547,7 @@ in rec {
           fi
         '' + postInstall;
 
+
         checkPhase =
           if checkPhase != null
             then checkPhase
@@ -555,8 +556,17 @@ in rec {
               export LOCALE_ARCHIVE=${glibcLocales}/lib/locale/locale-archive
               export APP_TESTING=${name}
 
+              echo "################################################################"
+              echo "## flake8 ######################################################"
+              echo "################################################################"
               flake8
+              echo "################################################################"
+
+              echo "################################################################"
+              echo "## pytest ######################################################"
+              echo "################################################################"
               pytest tests/
+              echo "################################################################"
             '';
 
         shellHook = ''
@@ -566,17 +576,17 @@ in rec {
           export LANG=en_US.UTF-8
           export DEBUG=1
           export APP_TESTING=${name}
-          export FLASK_APP=${dirname}:flask.app
+          export FLASK_APP=${dirname}.flask:app
         '' + shellHook;
 
         inherit dockerContents;
         dockerEnv = [
           "APP_SETTINGS=${self}/etc/settings.py"
-          "FLASK_APP=${dirname}:flask.app"
+          "FLASK_APP=${dirname}.flask:app"
         ];
         dockerCmd = [
           "gunicorn"
-          "${dirname}:flask.app"
+          "${dirname}.flask:app"
           "--log-file"
           "-"
         ];
@@ -708,8 +718,17 @@ in rec {
               export LANG=en_US.UTF-8
               export LOCALE_ARCHIVE=${glibcLocales}/lib/locale/locale-archive
 
+              echo "################################################################"
+              echo "## flake8 ######################################################"
+              echo "################################################################"
               flake8
+              echo "################################################################"
+
+              echo "################################################################"
+              echo "## pytest ######################################################"
+              echo "################################################################"
               pytest tests/
+              echo "################################################################"
             '';
 
         postInstall = ''
