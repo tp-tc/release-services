@@ -5,11 +5,10 @@
 
 from __future__ import absolute_import
 
-import json
 import os
-import tempfile
 import cli_common.taskcluster
 import shipit_signoff.config
+import shipit_signoff.util
 
 
 DEBUG = bool(os.environ.get('DEBUG', False))
@@ -18,6 +17,7 @@ DEBUG = bool(os.environ.get('DEBUG', False))
 # -- LOAD SECRETS -------------------------------------------------------------
 
 required = [
+    'SECRET_KEY',
     'DATABASE_URL',
     'APP_URL',
     'AUTH0_CLIENT_ID',
@@ -29,7 +29,7 @@ secrets = cli_common.taskcluster.get_secrets(
     os.environ.get('TASKCLUSTER_SECRET'),
     shipit_signoff.config.PROJECT_NAME,
     required=required,
-    existing={x: os.environ.get(x) for x in required},
+    existing={x: os.environ.get(x) for x in required if x in os.environ},
     taskcluster_client_id=os.environ.get('TASKCLUSTER_CLIENT_ID'),
     taskcluster_access_token=os.environ.get('TASKCLUSTER_ACCESS_TOKEN'),
 )
@@ -49,20 +49,8 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 SECRET_KEY = os.urandom(24)
 # OIDC_CALLBACK_ROUTE='/redirect_url'
 OIDC_USER_INFO_ENABLED = True
-OIDC_CLIENT_SECRETS = tempfile.mkstemp()[1]
-
-
-with open(OIDC_CLIENT_SECRETS, 'w+') as f:
-    f.write(json.dumps({
-        'web': {
-            'auth_uri': 'https://auth.mozilla.auth0.com/authorize',
-            'issuer': 'https://auth.mozilla.auth0.com/',
-            'client_id': secrets['AUTH0_CLIENT_ID'],
-            'client_secret': secrets['AUTH0_CLIENT_SECRET'],
-            'redirect_uris': [
-                secrets['APP_URL'] + '/oidc_callback',
-            ],
-            'token_uri': 'https://auth.mozilla.auth0.com/oauth/token',
-            'userinfo_uri': 'https://auth.mozilla.auth0.com/userinfo',
-        }
-    }))
+OIDC_CLIENT_SECRETS = shipit_signoff.util.create_auth0_secrets_file(
+    secrets['AUTH0_CLIENT_ID'],
+    secrets['AUTH0_CLIENT_SECRET'],
+    secrets['APP_URL'],
+)
