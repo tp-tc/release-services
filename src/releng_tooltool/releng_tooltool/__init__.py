@@ -4,3 +4,28 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from __future__ import absolute_import
+
+import os
+import backend_common
+import releng_tooltool.aws
+import releng_tooltool.config
+import releng_tooltool.models  # noqa
+
+
+def create_app(config=None):
+    app = backend_common.create_app(
+        name=releng_tooltool.config.PROJECT_NAME,
+        config=config,
+        extensions=[
+            'log',
+            'security',
+            'cors',
+            'api',
+            'auth',
+            'db',
+        ],
+    )
+    app.api.register(os.path.join(os.path.dirname(__file__), 'api.yml'))
+    app.aws = releng_tooltool.aws.AWS(app.config['S3_REGIONS_ACCESS_KEY_ID'],
+                                      app.config['S3_REGIONS_SECRET_ACCESS_KEY'])
+    return app

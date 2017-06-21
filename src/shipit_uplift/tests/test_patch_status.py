@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+from __future__ import absolute_import
+
 import json
 
 
 def test_patch_status(client, bugs, header_bot):
-    """
+    '''
     Fetch detailled analysis, with bugs
-    """
+    '''
     from shipit_uplift.models import BugResult
     url = '/bugs/1139560/patches'
     revision = '80c32af73390'  # existing patch revision
@@ -18,9 +24,12 @@ def test_patch_status(client, bugs, header_bot):
     assert 'merge' not in patches[revision]
 
     # Check there are no patch statuses at first
-    resp = client.get(url, headers=[
-        ('Authorization', header_bot),
-    ])
+    resp = client.get(
+        url,
+        headers=[
+            ('Authorization', header_bot),
+        ],
+    )
     assert resp.status_code == 200
     statuses = json.loads(resp.data.decode('utf-8'))
     assert statuses == []
@@ -34,16 +43,23 @@ def test_patch_status(client, bugs, header_bot):
         'status': 'failed',
         'message': 'random mercurial error',
     }
-    resp = client.post(url, data=json.dumps(data), headers=[
-        ('Authorization', header_bot),
-        ('Content-Type', 'application/json'),
-    ])
+    resp = client.post(
+        url,
+        data=json.dumps(data),
+        headers=[
+            ('Authorization', header_bot),
+            ('Content-Type', 'application/json'),
+        ],
+    )
     assert resp.status_code == 200
 
     # Check we now have 1 patch status attached to the bug
-    resp = client.get(url, headers=[
-        ('Authorization', header_bot),
-    ])
+    resp = client.get(
+        url,
+        headers=[
+            ('Authorization', header_bot),
+        ],
+    )
     assert resp.status_code == 200
     statuses = json.loads(resp.data.decode('utf-8'))
     assert len(statuses) == 1

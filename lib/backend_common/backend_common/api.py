@@ -1,29 +1,28 @@
+# -*- coding: utf-8 -*-
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from __future__ import absolute_import
 
+import cli_common.log
 import connexion
 import flask
 import pathlib
 import werkzeug
-
-import cli_common.log
 
 
 logger = cli_common.log.get_logger(__name__)
 
 
 def common_error_handler(exception):
-    """
-    TODO: add description
+    '''TODO: add description
 
     :param extension:  TODO
     :type exception: Exception
 
     :rtype: TODO:
-    """
+    '''
 
     if not isinstance(exception, werkzeug.exceptions.HTTPException):
         exception = werkzeug.exceptions.InternalServerError()
@@ -36,16 +35,15 @@ def common_error_handler(exception):
 
 
 class Api:
-    """
-    TODO: add description
-    TODO: annotate class
-    """
+    '''TODO: add description
+       TODO: annotate class
+    '''
 
     def __init__(self, app):
-        """
+        '''
         TODO: add description
         TODO: annotate function
-        """
+        '''
         self.__app = app
 
         logger.debug('Setting JSON encoder.')
@@ -58,25 +56,24 @@ class Api:
 
     def register(self,
                  swagger_file,
-                 base_url=None,
+                 base_path=None,
                  arguments=None,
                  auth_all_paths=False,
                  swagger_json=True,
                  swagger_ui=True,
                  swagger_path=None,
-                 swagger_url="docs",
+                 swagger_url='docs',
                  validate_responses=True,
                  strict_validation=True,
                  resolver=connexion.resolver.Resolver(),
                  ):
-        """
-        Adds an API to the application based on a swagger file
+        '''Adds an API to the application based on a swagger file
 
         :param swagger_file: swagger file with the specification
         :type swagger_file: str
 
-        :param base_url: base path where to add this api
-        :type base_url: str | None
+        :param base_path: base path where to add this api
+        :type base_path: str | None
 
         :param arguments: api version specific arguments to replace on the
                           specification
@@ -109,7 +106,7 @@ class Api:
         :type resolver: connexion.resolver.Resolver | types.FunctionType
 
         :rtype: None
-        """
+        '''
 
         app = self.__app
         if hasattr(resolver, '__call__'):
@@ -120,7 +117,7 @@ class Api:
         self.swagger_url = swagger_url
         self.__api = connexion.apis.flask_api.FlaskApi(
             specification=pathlib.Path(swagger_file),
-            base_url=base_url,
+            base_path=base_path,
             arguments=arguments,
             swagger_json=swagger_json,
             swagger_ui=swagger_ui,
@@ -142,9 +139,11 @@ class Api:
 
 def handle_default_exceptions(e):
     return flask.jsonify({
-        'status_code': e.code,
-        'message': str(e),
-        'description': e.description
+        'type': 'about:blank',
+        'title': str(e),
+        'status': e.code,
+        'detail': e.description,
+        'instance': 'about:blank',
     }), e.code
 
 
