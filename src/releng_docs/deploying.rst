@@ -27,7 +27,7 @@ manager <services-managers>` or `creating a ticket on github`_.
 Release Protocol
 ----------------
 
-This protocal is followed by the :ref:`services manager <services-managers>`.
+This protocol is followed by the :ref:`services manager <services-managers>`.
 
 #. If not already there, create a PR from ``master`` to ``production`` branch.
    (`Example of release PR`_).
@@ -246,53 +246,57 @@ Services Managers
 Service Owners
 --------------
 
-+--------------------------------+---------------------------+
-+ Service                        | Owner(s)                  |
-+================================+===========================+
-+ :ref:`releng_archiver`         | - `Rok Garbas`_           |
-+--------------------------------+---------------------------+
-+ :ref:`releng_clobberer`        | - `Rok Garbas`_           |
-+--------------------------------+---------------------------+
-+ :ref:`releng_docs`             | - `Rok Garbas`_           |
-+--------------------------------+---------------------------+
-+ :ref:`releng_frontend`         | - `Rok Garbas`_           |
-+--------------------------------+---------------------------+
-+ :ref:`releng_mapper`           | - `Rok Garbas`_           |
-+--------------------------------+---------------------------+
-+ :ref:`releng_slavehealth`      | - `Rok Garbas`_           |
-+--------------------------------+---------------------------+
-+ :ref:`releng_tooltool`         | - `Rok Garbas`_           |
-+--------------------------------+---------------------------+
-+ :ref:`releng_treestatus`       | - `Rok Garbas`_           |
-+--------------------------------+---------------------------+
-+ :ref:`shipit_bot_uplift`       | - `Bastien Abadie`_       |
-+--------------------------------+---------------------------+
-+ :ref:`shipit_code_coverage`    + - `Bastien Abadie`_       +
-+                                | - `Marco Castelluccio`_   |
-+--------------------------------+---------------------------+
-+ :ref:`shipit_frontend`         | - `Rok Garbas`_           |
-+                                | - `Bastien Abadie`_       |
-+--------------------------------+---------------------------+
-+ :ref:`shipit_pipeline`         | - (not yet started)       |
-+--------------------------------+---------------------------+
-+ :ref:`shipit_pulse_listener`   + - `Bastien Abadie`_       +
-+                                | - `Marco Castelluccio`_   |
-+--------------------------------+---------------------------+
-+ :ref:`shipit_risk_assessment`  + - `Bastien Abadie`_       +
-+                                | - `Marco Castelluccio`_   |
-+--------------------------------+---------------------------+
-+ :ref:`shipit_signoff`          | - `Ben Hearsum`_          |
-+                                | - `Simon Fraser`_         |
-+--------------------------------+---------------------------+
-+ :ref:`shipit_static_analysis`  + - `Bastien Abadie`_       +
-+                                | - `Marco Castelluccio`_   |
-+--------------------------------+---------------------------+
-+ :ref:`shipit_uplift`           | - `Bastien Abadie`_       |
-+                                | - `Marco Castelluccio`_   |
-+--------------------------------+---------------------------+
-+ :ref:`shipit_taskcluster`      | - `Jordan Lund`_          |
-+                                | - `Nick Thomas`_          |
-+--------------------------------+---------------------------+
++--------------------------------------+---------------------------+
++ Service                              | Owner(s)                  |
++======================================+===========================+
++ :ref:`releng_archiver`               | - `Rok Garbas`_           |
++--------------------------------------+---------------------------+
++ :ref:`releng_clobberer`              | - `Rok Garbas`_           |
++--------------------------------------+---------------------------+
++ :ref:`releng_docs`                   | - `Rok Garbas`_           |
++--------------------------------------+---------------------------+
++ :ref:`releng_frontend`               | - `Rok Garbas`_           |
++--------------------------------------+---------------------------+
++ :ref:`releng_mapper`                 | - `Rok Garbas`_           |
++--------------------------------------+---------------------------+
++ :ref:`releng_notification_identity`  | - `Connor Sheehan`_       |
++--------------------------------------+---------------------------+
++ :ref:`releng_notification_policy`    | - `Connor Sheehan`_       |
++--------------------------------------+---------------------------+
++ :ref:`releng_slavehealth`            | - `Rok Garbas`_           |
++--------------------------------------+---------------------------+
++ :ref:`releng_tooltool`               | - `Rok Garbas`_           |
++--------------------------------------+---------------------------+
++ :ref:`releng_treestatus`             | - `Rok Garbas`_           |
++--------------------------------------+---------------------------+
++ :ref:`shipit_bot_uplift`             | - `Bastien Abadie`_       |
++--------------------------------------+---------------------------+
++ :ref:`shipit_code_coverage`          + - `Bastien Abadie`_       +
++                                      | - `Marco Castelluccio`_   |
++--------------------------------------+---------------------------+
++ :ref:`shipit_frontend`               | - `Rok Garbas`_           |
++                                      | - `Bastien Abadie`_       |
++--------------------------------------+---------------------------+
++ :ref:`shipit_pipeline`               | - (not yet started)       |
++--------------------------------------+---------------------------+
++ :ref:`shipit_pulse_listener`         + - `Bastien Abadie`_       +
++                                      | - `Marco Castelluccio`_   |
++--------------------------------------+---------------------------+
++ :ref:`shipit_risk_assessment`        + - `Bastien Abadie`_       +
++                                      | - `Marco Castelluccio`_   |
++--------------------------------------+---------------------------+
++ :ref:`shipit_signoff`                | - `Ben Hearsum`_          |
++                                      | - `Simon Fraser`_         |
++--------------------------------------+---------------------------+
++ :ref:`shipit_static_analysis`        + - `Bastien Abadie`_       +
++                                      | - `Marco Castelluccio`_   |
++--------------------------------------+---------------------------+
++ :ref:`shipit_uplift`                 | - `Bastien Abadie`_       |
++                                      | - `Marco Castelluccio`_   |
++--------------------------------------+---------------------------+
++ :ref:`shipit_taskcluster`            | - `Jordan Lund`_          |
++                                      | - `Nick Thomas`_          |
++--------------------------------------+---------------------------+
 
 
 In case when Owner(s) of services are on PTO or not responsive please follow
@@ -307,6 +311,7 @@ In case when Owner(s) of services are on PTO or not responsive please follow
 .. _`Marco Castelluccio`: https://phonebook.mozilla.org/?search/Marco%20Castelluccio
 .. _`Bastien Abadie`: https://github.com/La0
 .. _`Contacting Release Engineering`: https://wiki.mozilla.org/ReleaseEngineering#Contacting_Release_Engineering
+.. _`Connor Sheehan`: https://phonebook.mozilla.org/?search/Connor%20Sheehan
 
 
 .. _continuous-integration:

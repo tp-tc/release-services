@@ -39,7 +39,9 @@ TODO: write description
 :staging: https://staging.mozilla-releng.net
 :production: https://mozilla-releng.net
 
-TODO: write description
+RelEng frontend is a web app containing various graphical user interfaces for interacting with RelEng Services.
+User authentication is handled via the Mozilla TaskCluster instance. Currently only TreeStatus and TryChooser are
+supported.
 
 
 .. _releng_mapper:
@@ -61,7 +63,7 @@ TODO: write description
 RelEng Notification Identity is a tool to store the notification preferences of different individuals and groups for
 different levels of urgency. Parties who will be notified of events related to the release cycle (human decisions,
 signoffs, chemspills etc) register their identity name, and specify how to notify based on different levels of urgency.
-Currently *email* is the only supported notification channel, and *low, normal, high, do it yesterday* are the
+Currently *EMAIL* and *IRC* are the supported notification channels, and *LOW, NORMAL, HIGH, DO_YESTERDAY* are the
 urgency levels. RelEng Notification Identity is meant to work together with RelEng Notification Policy.
 
 .. _releng_notification_policy:
@@ -73,9 +75,9 @@ urgency levels. RelEng Notification Identity is meant to work together with RelE
 :production: https://notification-policy.mozilla-releng.net
 
 RelEng Notification Policy is a tool to send RelEng related notifications based on periodic policies, and escalate
-unacknowledged notifications to higher urgency levels. Message requests are sent to the service with details on who to
-notify and how urgent the message is. Policies for how to notify these stakeholders are retrieved from the RelEng
-Notification Identity service.
+unacknowledged notifications to higher urgency levels. Message requests are sent to the service with details on how to
+notify and how urgent the message is. User preferences for how to notify these stakeholders are retrieved from the
+RelEng Notification Identity service.
 
 
 .. _releng_slavehealth:
