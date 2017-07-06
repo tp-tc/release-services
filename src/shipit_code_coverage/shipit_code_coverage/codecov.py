@@ -5,6 +5,7 @@ from datetime import datetime
 import zipfile
 import requests
 import hglib
+from concurrent.futures import ThreadPoolExecutor
 
 from cli_common.log import get_logger
 from cli_common.command import run, run_check
@@ -17,16 +18,30 @@ logger = get_logger(__name__)
 
 class CodeCov(object):
 
-    def __init__(self, cache_root, coveralls_token, codecov_token):
+    def __init__(self, revision, cache_root, coveralls_token, codecov_token, deploy_key):
         # List of test-suite, sorted alphabetically.
         # This way, the index of a suite in the array should be stable enough.
         self.suites = []
+
+        self.cache_root = cache_root
 
         assert os.path.isdir(cache_root), 'Cache root {} is not a dir.'.format(cache_root)
         self.repo_dir = os.path.join(cache_root, 'mozilla-central')
 
         self.coveralls_token = coveralls_token
         self.codecov_token = codecov_token
+        self.deploy_key = deploy_key
+
+        if revision is None:
+            self.task_id = taskcluster.get_last_task()
+
+            task_data = taskcluster.get_task_details(self.task_id)
+            self.revision = task_data['payload']['env']['GECKO_HEAD_REV']
+        else:
+            self.task_id = taskcluster.get_task('mozilla-central', revision)
+            self.revision = revision
+
+        logger.info('Mercurial revision', revision=self.revision)
 
     def download_coverage_artifacts(self, build_task_id):
         try:
@@ -48,6 +63,10 @@ class CodeCov(object):
         test_tasks = [t for t in tasks if taskcluster.is_coverage_task(t)]
         for test_task in test_tasks:
             suite_name = taskcluster.get_suite_name(test_task)
+            # Ignore awsy and talos as they aren't actually suites of tests.
+            if any(to_ignore in suite_name for to_ignore in ['awsy', 'talos']):
+                continue
+
             all_suites.add(suite_name)
             test_task_id = test_task['status']['taskId']
             artifacts = taskcluster.get_task_artifacts(test_task_id)
@@ -57,6 +76,17 @@ class CodeCov(object):
 
         self.suites = list(all_suites)
         self.suites.sort()
+
+    def update_github_repo(self):
+        with open('id_rsa', 'w') as f:
+            f.write(self.deploy_key)
+        run_check(['ssh-add', 'id_rsa'])
+
+        repo_path = os.path.join(self.cache_root, 'gecko-dev')
+        if not os.path.isdir(repo_path):
+            run_check(['git', 'clone', 'git@github.com:marco-c/gecko-dev.git'], cwd=self.cache_root)
+        run_check(['git', 'pull', 'git@github.com:mozilla/gecko-dev.git', 'master'], cwd=repo_path)
+        run_check(['git', 'push'], cwd=repo_path)
 
     def get_github_commit(self, mercurial_commit):
         url = 'https://api.pub.build.mozilla.org/mapper/gecko-dev/rev/hg/%s'
@@ -76,10 +106,8 @@ class CodeCov(object):
 
     def rewrite_jsvm_lcov(self):
         files = os.listdir('ccov-artifacts')
-        for fname in files:
-            if 'jsvm' not in fname or not fname.endswith('.zip'):
-                continue
 
+        def rewrite(fname):
             zip_file_path = 'ccov-artifacts/' + fname
             out_dir = 'ccov-artifacts/' + fname[:-4]
 
@@ -96,6 +124,13 @@ class CodeCov(object):
             lcov_out_files = [os.path.abspath(os.path.join(out_dir, f)) for f in os.listdir(out_dir)]
             for lcov_out_file in lcov_out_files:
                 os.rename(lcov_out_file, lcov_out_file[:-4])
+
+        with ThreadPoolExecutor() as executor:
+            for fname in files:
+                if 'jsvm' not in fname or not fname.endswith('.zip'):
+                    continue
+
+                executor.submit(rewrite, fname)
 
     def generate_info(self, commit_sha, coveralls_token, suite=None):
         files = os.listdir('ccov-artifacts')
@@ -160,16 +195,10 @@ class CodeCov(object):
         run_check(['gecko-env', './mach', 'build-backend', '-b', 'ChromeMap'], cwd=self.repo_dir)
 
     def go(self):
-        task_id = taskcluster.get_last_task()
-
-        task_data = taskcluster.get_task_details(task_id)
-        revision = task_data['payload']['env']['GECKO_HEAD_REV']
-        logger.info('Mercurial revision', revision=revision)
-
-        self.download_coverage_artifacts(task_id)
+        self.download_coverage_artifacts(self.task_id)
         logger.info('Code coverage artifacts downloaded')
 
-        self.clone_mozilla_central(revision)
+        self.clone_mozilla_central(self.revision)
         logger.info('mozilla-central cloned')
         self.build_files()
         logger.info('Build successful')
@@ -177,7 +206,10 @@ class CodeCov(object):
         self.rewrite_jsvm_lcov()
         logger.info('JSVM LCOV files rewritten')
 
-        commit_sha = self.get_github_commit(revision)
+        if self.deploy_key is not None:
+            self.update_github_repo()
+
+        commit_sha = self.get_github_commit(self.revision)
         logger.info('GitHub revision', revision=commit_sha)
 
         coveralls_jobs = []
