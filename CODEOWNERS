@@ -1,0 +1,46 @@
+#####
+## Code Owners for Mozilla-Releng Services
+#####
+
+# Common Components
+lib/*                               @garbas
+nix/*                               @garbas
+
+# Services
+src/releng_archiver/*               @garbas
+
+src/releng_clobberer/*              @garbas
+
+src/releng_docs/*                   @garbas
+
+src/releng_frontend/*               @garbas
+
+src/releng_mapper/*                 @garbas
+
+src/releng_notification_identity/*  @cgsheeh
+
+src/releng_notification_policy/*    @cgsheeh
+
+src/releng_tooltool/*               @garbas
+
+src/releng_treestatus/*             @garbas
+
+src/shipit_bot_uplift/*             @La0
+
+src/shipit_code_coverage            @marco-c @La0
+
+src/shipit_frontend/*               @garbas @La0
+
+src/shipit_pipeline/*               @garbas
+
+src/shipit_pulse_listener/*         @marco-c @La0
+
+src/shipit_risk_assessment/*        @marco-c @La0
+
+src/shipit_signoff/*                @sfraser @mozbhearsum
+
+src/shipit_static_analysis/*        @marco-c @La0
+
+src/shipit_uplift/*                 @marco-c @La0
+
+src/shipit_taskcluster/*            @lundjordan @nthomas-mozilla
