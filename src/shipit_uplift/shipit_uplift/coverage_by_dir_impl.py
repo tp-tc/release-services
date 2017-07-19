@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 from enum import Enum
 import fnmatch
-import json
-import os
 import re
 import requests
 from libmozdata.bugzilla import Bugzilla
@@ -14,7 +12,6 @@ class CoverageService(Enum):
 
 
 COVERAGE_SERVICE = CoverageService.CODECOV
-MAX_LEVEL = 3
 
 
 def get_mercurial_commit(github_commit):
@@ -70,7 +67,7 @@ def get_coverage_builds():
     return (latest_commit, previous_commit)
 
 
-def get_coverage(commit_sha, directory):
+def get_coverage(commit_sha, prev_commit_sha, directory):
     if COVERAGE_SERVICE == CoverageService.COVERALLS:
         r = requests.get('https://coveralls.io/builds/' + commit_sha + '.json?paths=' + directory + '/*')
 
@@ -89,8 +86,16 @@ def get_coverage(commit_sha, directory):
 
         result = r.json()
         files_num = result['commit']['folder_totals']['files']
-        cur = result['commit']['totals']['c']
-        prev = result['commit']['parent_totals']['c']
+        cur = result['commit']['folder_totals']['coverage']
+
+        r = requests.get('https://codecov.io/api/gh/marco-c/gecko-dev/tree/' + prev_commit_sha + '/' + directory)
+
+        if r.status_code != requests.codes.ok:
+            raise Exception('Error while loading coverage data.')
+
+        result = r.json()
+
+        prev = result['commit']['folder_totals']['coverage']
 
     return {
       'files_num': files_num,
@@ -99,20 +104,12 @@ def get_coverage(commit_sha, directory):
     }
 
 
-def get_directories(directory, rootDir, curLevel=0):
-    if curLevel == MAX_LEVEL or '.hg' in directory:
-        return []
-
-    dirs = [os.path.relpath(os.path.join(directory, d), rootDir) for d in os.listdir(directory) if os.path.isdir(os.path.join(directory, d))]
-
-    subdirs = []
-    for d in dirs:
-        subdirs += get_directories(os.path.join(rootDir, d), rootDir, curLevel + 1)
-
-    return dirs + subdirs
+def get_directories(directory=''):
+    r = requests.get('https://hg.mozilla.org/mozilla-central/json-file/tip/' + directory)
+    return [d['abspath'].lstrip('/') for d in r.json()['directories']]
 
 
-def generate(rootDir):
+def generate(path):
     latest_commit, previous_commit = get_coverage_builds()
 
     latest_mercurial_commit = get_mercurial_commit(latest_commit)
@@ -120,20 +117,20 @@ def generate(rootDir):
 
     changesets = load_changesets(previous_mercurial_commit, latest_mercurial_commit)
 
-    directories = get_directories(rootDir, rootDir)
+    directories = get_directories(path)
 
     data = dict()
     all_bugs = set()
 
     for directory in directories:
-        d = get_coverage(latest_commit, directory)
+        d = get_coverage(latest_commit, previous_commit, directory)
 
         if d['files_num'] == 0:
             continue
 
         data[directory] = {}
-        data[directory]['cur'] = d['cur']
-        data[directory]['prev'] = d['prev']
+        data[directory]['cur'] = float(d['cur']) if d['cur'] is not None else None
+        data[directory]['prev'] = float(d['prev']) if d['prev'] is not None else None
 
         # Add bugs with structure for libmozdata updates
         directory_bugs = get_related_bugs(changesets, directory)
@@ -162,5 +159,4 @@ def generate(rootDir):
         )
     ).get_data().wait()
 
-    with open('coverage_by_dir.json', 'w') as f:
-        json.dump(data, f)
+    return data
