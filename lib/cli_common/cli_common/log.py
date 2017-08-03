@@ -93,15 +93,15 @@ def setup_papertrail(project_name, channel, PAPERTRAIL_HOST, PAPERTRAIL_PORT):
     papertrail.push_application()
 
 
-def setup_sentry(project_name, channel, SENTRY_DSN):
+def setup_sentry(project_name, channel, SENTRY_DSN, flask_app=None):
     '''
     Setup sentry account using taskcluster secrets
     '''
 
-    from raven import Client
-    from raven.handlers.logbook import SentryHandler
+    import raven
+    import raven.handlers.logbook
 
-    sentry_client = Client(
+    sentry_client = raven.Client(
         dsn=SENTRY_DSN,
         site=project_name,
         name='mozilla-releng/services',
@@ -112,9 +112,16 @@ def setup_sentry(project_name, channel, SENTRY_DSN):
         # repos=...
     )
 
-    sentry = SentryHandler(sentry_client, level=logbook.WARNING, bubble=True)
+    if flask_app:
+        import raven.contrib.flask
+        raven.contrib.flask.Sentry(flask_app, client=sentry_client)
 
-    sentry.push_application()
+    sentry_handler = raven.handlers.logbook.SentryHandler(
+        sentry_client,
+        level=logbook.WARNING,
+        bubble=True,
+    )
+    sentry_handler.push_application()
 
 
 def init_logger(project_name,
@@ -124,7 +131,8 @@ def init_logger(project_name,
                 PAPERTRAIL_HOST=None,
                 PAPERTRAIL_PORT=None,
                 SENTRY_DSN=None,
-                MOZDEF=None
+                MOZDEF=None,
+                flask_app=None,
                 ):
 
     if not channel:
@@ -133,7 +141,7 @@ def init_logger(project_name,
     if channel and channel not in CHANNELS:
         raise Exception('Initilizing logging with channel `{}`. It should be one of: {}'.format(channel, ', '.join(CHANNELS)))
 
-    # By default utput logs on stderr
+    # By default output logs on stderr
     if handler is None:
         fmt = '{record.channel}: {record.message}'
         handler = logbook.StderrHandler(level=level, format_string=fmt)
@@ -146,7 +154,7 @@ def init_logger(project_name,
 
     # Log to sentry
     if channel and SENTRY_DSN:
-        setup_sentry(project_name, channel, SENTRY_DSN)
+        setup_sentry(project_name, channel, SENTRY_DSN, flask_app)
 
     def logbook_factory(*args, **kwargs):
         # Logger given to structlog

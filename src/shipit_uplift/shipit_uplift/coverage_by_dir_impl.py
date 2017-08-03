@@ -2,8 +2,8 @@
 from enum import Enum
 import fnmatch
 import re
+from concurrent.futures import ThreadPoolExecutor
 import requests
-from libmozdata.bugzilla import Bugzilla
 
 
 class CoverageService(Enum):
@@ -59,10 +59,10 @@ def get_coverage_builds():
         previous_commit = builds[1]['commit_sha']
     elif COVERAGE_SERVICE == CoverageService.CODECOV:
         r = requests.get('https://codecov.io/api/gh/marco-c/gecko-dev')
-        commits = r.json()['commits']
+        commit = r.json()['commit']
 
-        latest_commit = commits[0]['commitid']
-        previous_commit = commits[1]['commitid']
+        latest_commit = commit['commitid']
+        previous_commit = commit['parent']
 
     return (latest_commit, previous_commit)
 
@@ -122,11 +122,11 @@ def generate(path):
     data = dict()
     all_bugs = set()
 
-    for directory in directories:
+    def data_for_directory(directory):
         d = get_coverage(latest_commit, previous_commit, directory)
 
         if d['files_num'] == 0:
-            continue
+            return
 
         data[directory] = {}
         data[directory]['cur'] = float(d['cur']) if d['cur'] is not None else None
@@ -143,20 +143,19 @@ def generate(path):
             for bug in directory_bugs
         ]
 
-    def _bughandler(bug, *args, **kwargs):
-        for directory in data.values():
-            bug_id = bug['id']
-            for b in directory['bugs']:
-                if b['id'] == bug_id:
-                    b.update(bug)
+    with ThreadPoolExecutor() as executor:
+        for directory in directories:
+            executor.submit(data_for_directory, directory)
 
-    Bugzilla(
-        all_bugs,
-        bughandler=_bughandler,
-        include_fields=(
-            'id',
-            'summary',
-        )
-    ).get_data().wait()
+    r = requests.get('https://bugzilla.mozilla.org/rest/bug', params={
+      'include_fields': ['id', 'summary'],
+      'id': ','.join([str(b) for b in sorted(all_bugs)])
+    })
+
+    for found_bug in r.json()['bugs']:
+        for directory in data.values():
+            for bug in directory['bugs']:
+                if bug['id'] == found_bug['id']:
+                    bug['summary'] = found_bug['summary']
 
     return data

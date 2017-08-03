@@ -22,20 +22,14 @@ class Hook(object):
         self.pulse_queue = pulse_queue
         self.pulse_route = pulse_route
         self.queue = None  # TC queue
+        self.hooks = None  # TC hooks
 
     def connect_taskcluster(self, client_id=None, access_token=None):
         '''
-        Load the hook's task definition through Taskcluster
-        Save queue service for later use
+        Save hooks and queue services for later use
         '''
-        logger.info('Loading task definition', hook=self.hook_id, group=self.group_id)  # noqa
-        try:
-            service = get_service('hooks', client_id, access_token)
-            hook_payload = service.hook(self.group_id, self.hook_id)
-            self.task_definition = hook_payload['task']
-        except Exception as e:
-            logger.warn('Failed to fetch task definition', hook=self.hook_id, group=self.group_id, err=e)  # noqa
-            return False
+        # Get taskcluster hooks
+        self.hooks = get_service('hooks', client_id, access_token)
 
         # Get taskcluster queue
         self.queue = get_service('queue', client_id, access_token)
@@ -83,14 +77,39 @@ class Hook(object):
         '''
         raise NotImplementedError
 
-    async def create_task(self, ttl=5, extra_env={}):
+    def parse_deadline(self, deadline):
+        parts = deadline.split(' ')
+
+        num = int(parts[0])
+        unit = parts[1]
+
+        if unit.startswith('second'):
+            return timedelta(seconds=num)
+        elif unit.startswith('minute'):
+            return timedelta(minutes=num)
+        elif unit.startswith('hour'):
+            return timedelta(minutes=num * 60)
+        elif unit.startswith('day'):
+            return timedelta(days=num)
+        else:
+            raise Exception('Error while parsing: ' % deadline)
+
+    async def create_task(self, extra_env={}):
         '''
         Create a new task on Taskcluster
         '''
+        assert self.hooks is not None
         assert self.queue is not None
 
+        logger.info('Loading task definition', hook=self.hook_id, group=self.group_id)
+        try:
+            hook_definition = self.hooks.hook(self.group_id, self.hook_id)
+        except Exception as e:
+            logger.warn('Failed to fetch task definition', hook=self.hook_id, group=self.group_id, err=e)
+            return False
+
         # Update the env in task
-        task_definition = copy.deepcopy(self.task_definition)
+        task_definition = copy.deepcopy(hook_definition['task'])
         task_definition['payload']['env'].update(extra_env)
 
         # Build task id
@@ -99,7 +118,7 @@ class Hook(object):
         # Set dates
         now = datetime.utcnow()
         task_definition['created'] = now
-        task_definition['deadline'] = now + timedelta(seconds=ttl * 3600)
+        task_definition['deadline'] = now + self.parse_deadline(hook_definition['deadline'])
         logger.info('Creating a new task', id=task_id, name=task_definition['metadata']['name'])  # noqa
 
         # Create a new task

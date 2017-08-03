@@ -5,12 +5,13 @@ from datetime import datetime
 import zipfile
 import requests
 import hglib
-from concurrent.futures import ThreadPoolExecutor
+from threading import Condition
 
 from cli_common.log import get_logger
 from cli_common.command import run_check
 
-from shipit_code_coverage import taskcluster, uploader, utils
+from shipit_code_coverage import taskcluster, uploader
+from shipit_code_coverage.utils import wait_until, retry, ThreadPoolExecutorResult
 
 
 logger = get_logger(__name__)
@@ -42,6 +43,9 @@ class CodeCov(object):
             self.task_id = taskcluster.get_task('mozilla-central', revision)
             self.revision = revision
 
+        self.build_finished = False
+        self.build_finished_cv = Condition()
+
         logger.info('Mercurial revision', revision=self.revision)
 
     def download_coverage_artifacts(self, build_task_id):
@@ -55,31 +59,43 @@ class CodeCov(object):
 
         all_suites = set()
 
+        def rewriting_task(path):
+            return lambda: self.rewrite_jsvm_lcov(path)
+
         tasks = taskcluster.get_tasks_in_group(task_data['taskGroupId'])
         test_tasks = [t for t in tasks if taskcluster.is_coverage_task(t)]
-        for test_task in test_tasks:
-            suite_name = taskcluster.get_suite_name(test_task)
-            # Ignore awsy and talos as they aren't actually suites of tests.
-            if any(to_ignore in suite_name for to_ignore in ['awsy', 'talos']):
-                continue
+        with ThreadPoolExecutorResult() as executor:
+            for test_task in test_tasks:
+                suite_name = taskcluster.get_suite_name(test_task)
+                # Ignore awsy and talos as they aren't actually suites of tests.
+                if any(to_ignore in suite_name for to_ignore in ['awsy', 'talos']):
+                    continue
 
-            all_suites.add(suite_name)
-            test_task_id = test_task['status']['taskId']
-            artifacts = taskcluster.get_task_artifacts(test_task_id)
-            for artifact in artifacts:
-                if any(n in artifact['name'] for n in ['code-coverage-grcov.zip', 'code-coverage-jsvm.zip']):
-                    taskcluster.download_artifact(test_task_id, suite_name, artifact)
+                all_suites.add(suite_name)
 
-        self.suites = list(all_suites)
-        self.suites.sort()
+                test_task_id = test_task['status']['taskId']
+                for artifact in taskcluster.get_task_artifacts(test_task_id):
+                    if not any(n in artifact['name'] for n in ['code-coverage-grcov.zip', 'code-coverage-jsvm.zip']):
+                        continue
+
+                    artifact_path = taskcluster.download_artifact(test_task_id, suite_name, artifact)
+                    if 'code-coverage-jsvm.zip' in artifact['name']:
+                        executor.submit(rewriting_task(artifact_path))
+
+            self.suites = list(all_suites)
+            self.suites.sort()
+
+            logger.info('Code coverage artifacts downloaded')
 
     def update_github_repo(self):
+        run_check(['git', 'config', '--global', 'http.postBuffer', '12M'])
         repo_url = 'https://%s:%s@github.com/marco-c/gecko-dev' % (self.gecko_dev_user, self.gecko_dev_pwd)
         repo_path = os.path.join(self.cache_root, 'gecko-dev')
+
         if not os.path.isdir(repo_path):
-            run_check(['git', 'clone', repo_url], cwd=self.cache_root)
-        run_check(['git', 'pull', 'https://github.com/mozilla/gecko-dev', 'master'], cwd=repo_path)
-        run_check(['git', 'push', repo_url, 'master'], cwd=repo_path)
+            retry(lambda: run_check(['git', 'clone', repo_url], cwd=self.cache_root))
+        retry(lambda: run_check(['git', 'pull', 'https://github.com/mozilla/gecko-dev', 'master'], cwd=repo_path))
+        retry(lambda: run_check(['git', 'push', repo_url, 'master'], cwd=repo_path))
 
     def get_github_commit(self, mercurial_commit):
         url = 'https://api.pub.build.mozilla.org/mapper/gecko-dev/rev/hg/%s'
@@ -92,38 +108,31 @@ class CodeCov(object):
 
             return None
 
-        ret = utils.wait_until(get_commit)
+        ret = wait_until(get_commit)
         if ret is None:
             raise Exception('Mercurial commit is not available yet on mozilla/gecko-dev.')
         return ret
 
-    def rewrite_jsvm_lcov(self):
-        files = os.listdir('ccov-artifacts')
+    def rewrite_jsvm_lcov(self, zip_file_path):
+        with self.build_finished_cv:
+            while not self.build_finished:
+                self.build_finished_cv.wait()
 
-        def rewrite(fname):
-            zip_file_path = 'ccov-artifacts/' + fname
-            out_dir = 'ccov-artifacts/' + fname[:-4]
+        out_dir = zip_file_path[:-4]
 
-            zip_file = zipfile.ZipFile(zip_file_path, 'r')
-            zip_file.extractall(out_dir)
-            zip_file.close()
+        zip_file = zipfile.ZipFile(zip_file_path, 'r')
+        zip_file.extractall(out_dir)
+        zip_file.close()
 
-            lcov_files = [os.path.abspath(os.path.join(out_dir, f)) for f in os.listdir(out_dir)]
-            run_check(['gecko-env', './mach', 'python', 'python/mozbuild/mozbuild/codecoverage/lcov_rewriter.py'] + lcov_files, cwd=self.repo_dir)
+        lcov_files = [os.path.abspath(os.path.join(out_dir, f)) for f in os.listdir(out_dir)]
+        run_check(['gecko-env', './mach', 'python', 'python/mozbuild/mozbuild/codecoverage/lcov_rewriter.py'] + lcov_files, cwd=self.repo_dir)
 
-            for lcov_file in lcov_files:
-                os.remove(lcov_file)
+        for lcov_file in lcov_files:
+            os.remove(lcov_file)
 
-            lcov_out_files = [os.path.abspath(os.path.join(out_dir, f)) for f in os.listdir(out_dir)]
-            for lcov_out_file in lcov_out_files:
-                os.rename(lcov_out_file, lcov_out_file[:-4])
-
-        with ThreadPoolExecutor() as executor:
-            for fname in files:
-                if 'jsvm' not in fname or not fname.endswith('.zip'):
-                    continue
-
-                executor.submit(rewrite, fname)
+        lcov_out_files = [os.path.abspath(os.path.join(out_dir, f)) for f in os.listdir(out_dir)]
+        for lcov_out_file in lcov_out_files:
+            os.rename(lcov_out_file, lcov_out_file[:-4])
 
     def generate_info(self, commit_sha, coveralls_token, suite=None):
         files = os.listdir('ccov-artifacts')
@@ -178,6 +187,8 @@ class CodeCov(object):
 
         hg.update(rev=revision, clean=True)
 
+        logger.info('mozilla-central cloned')
+
     def build_files(self):
         with open(os.path.join(self.repo_dir, '.mozconfig'), 'w') as f:
             f.write('mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-firefox\n')
@@ -187,17 +198,20 @@ class CodeCov(object):
         run_check(['gecko-env', './mach', 'build'], cwd=self.repo_dir)
         run_check(['gecko-env', './mach', 'build-backend', '-b', 'ChromeMap'], cwd=self.repo_dir)
 
-    def go(self):
-        self.download_coverage_artifacts(self.task_id)
-        logger.info('Code coverage artifacts downloaded')
-
-        self.clone_mozilla_central(self.revision)
-        logger.info('mozilla-central cloned')
-        self.build_files()
         logger.info('Build successful')
 
-        self.rewrite_jsvm_lcov()
-        logger.info('JSVM LCOV files rewritten')
+        self.build_finished = True
+        with self.build_finished_cv:
+            self.build_finished_cv.notify_all()
+
+    def go(self):
+        with ThreadPoolExecutorResult(max_workers=2) as executor:
+            # Thread 1 - Download coverage artifacts.
+            executor.submit(lambda: self.download_coverage_artifacts(self.task_id))
+
+            # Thread 2 - Clone and build mozilla-central
+            clone_future = executor.submit(lambda: self.clone_mozilla_central(self.revision))
+            clone_future.add_done_callback(lambda f: self.build_files())
 
         if self.gecko_dev_user is not None and self.gecko_dev_pwd is not None:
             self.update_github_repo()
@@ -219,5 +233,6 @@ class CodeCov(object):
         output = self.generate_info(commit_sha, self.coveralls_token)
         logger.info('Report generated successfully')
 
-        uploader.coveralls(output)
-        uploader.codecov(output, commit_sha, self.codecov_token)
+        with ThreadPoolExecutorResult(max_workers=2) as executor:
+            executor.submit(lambda: uploader.coveralls(output))
+            executor.submit(lambda: uploader.codecov(output, commit_sha, self.codecov_token))

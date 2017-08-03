@@ -190,6 +190,7 @@ in skipOverrides {
     patchPhase = ''
       sed -i -e "s|setup_requires=\['flake8'\],||" setup.py
       sed -i -e "s|jsonschema>=2.5.1|jsonschema|" setup.py
+      sed -i -e "s|'pathlib>=1.0.1; python_version < \"3.4\"',||" setup.py
     '';
   };
 
@@ -250,4 +251,12 @@ in skipOverrides {
     '';
   };
 
+  "RBTools" = self: old: {
+    patches = [
+         (pkgs.fetchurl {
+           url = "https://github.com/La0/rbtools/commit/190b4adb768897f65cf7ec57806649bc14c8e45d.diff";
+           sha256 = "1hh6i3cffsc4fxr4jqlxralnf78529i0pspm7jn686a2s6bh26mw";
+         })
+      ];
+  };
 }
