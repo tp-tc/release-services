@@ -34,6 +34,8 @@ class Workflow(object):
         self.cache_root = cache_root
         assert os.path.isdir(self.cache_root), \
             'Cache root {} is not a dir.'.format(self.cache_root)
+        assert 'MOZCONFIG' in os.environ, \
+            'Missing MOZCONFIG in environment'
 
         # Load TC services & secrets
         self.notify = get_service(
@@ -43,8 +45,8 @@ class Workflow(object):
         )
 
         # Clone mozilla-central
-        self.repo_dir = os.path.join(self.cache_root, 'static-analysis/')
-        shared_dir = os.path.join(self.cache_root, 'static-analysis-shared')
+        self.repo_dir = os.path.join(cache_root, 'central')
+        shared_dir = os.path.join(cache_root, 'central-shared')
         logger.info('Clone mozilla central', dir=self.repo_dir)
         cmd = hglib.util.cmdbuilder('robustcheckout',
                                     REPO_CENTRAL,
