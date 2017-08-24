@@ -89,6 +89,18 @@ def build_header(client_id, ext_data=None):
     return 'Hawk {}'.format(', '.join(parts))
 
 
+def hawk_header(scopes):
+    ''''
+    Helper to build an Hawk header
+    for a set of TC scopes
+    '''
+    client_id = 'test:'
+    ext_data = {
+        'scopes': scopes,
+    }
+    return build_header(client_id, ext_data)
+
+
 def parse_header(header):
     '''Parse a fake Hawk header
 
@@ -196,7 +208,6 @@ def client(app):
     '''
     with app.test_client() as client:
         with requests_mock:
-
             if hasattr(app, 'auth'):
                 requests_mock.add_callback(
                     responses.POST,

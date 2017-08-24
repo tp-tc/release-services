@@ -8,9 +8,17 @@ from __future__ import absolute_import
 import pytest
 
 import backend_common
+from releng_mapper.models import Project
 
 
-@pytest.fixture(scope='session')
+def db_setup(app):
+    session = app.db.session
+    project = Project(name='proj')
+    session.add(project)
+    session.commit()
+
+
+@pytest.fixture(scope='function')
 def app():
     '''Load releng_mapper in test mode
     '''
@@ -24,4 +32,6 @@ def app():
 
     with app.app_context():
         backend_common.testing.configure_app(app)
+        db_setup(app)
+
         yield app
