@@ -14,7 +14,9 @@ from cli_common.log import init_logger
 from cli_common.taskcluster import get_secrets
 import click
 import re
+from cli_common.log import get_logger
 
+logger = get_logger(__name__)
 
 REGEX_COMMIT = re.compile(r'(\w+):(\d+):(\d+)')
 
@@ -37,12 +39,14 @@ def main(commits,
     secrets = get_secrets(taskcluster_secret,
                           config.PROJECT_NAME,
                           required=(
+                              'APP_CHANNEL',
                               'STATIC_ANALYSIS_NOTIFICATIONS',
                               'MOZREVIEW_URL',
                               'MOZREVIEW_USER',
                               'MOZREVIEW_API_KEY',
                           ),
                           existing={
+                              'APP_CHANNEL': 'development',
                               'MOZREVIEW_ENABLED': False,
                           },
                           taskcluster_client_id=taskcluster_client_id,
@@ -65,6 +69,7 @@ def main(commits,
     with LockDir(cache_root, 'shipit-sa-') as work_dir:
         w = Workflow(work_dir,
                      secrets['STATIC_ANALYSIS_NOTIFICATIONS'],
+                     secrets['APP_CHANNEL'],
                      mozreview,
                      secrets['MOZREVIEW_ENABLED'],
                      taskcluster_client_id,
@@ -72,7 +77,15 @@ def main(commits,
                      )
 
         for commit in REGEX_COMMIT.findall(commits):
-            w.run(*commit)
+            try:
+                w.run(*commit)
+            except Exception as e:
+                # Log errors to papertrail
+                logger.error(
+                    'Static analysis failure',
+                    commit=commit,
+                    error=e,
+                )
 
 
 if __name__ == '__main__':

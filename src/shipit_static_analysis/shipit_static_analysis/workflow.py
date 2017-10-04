@@ -19,6 +19,17 @@ logger = get_logger(__name__)
 
 REPO_CENTRAL = b'https://hg.mozilla.org/mozilla-central'
 REPO_REVIEW = b'https://reviewboard-hg.mozilla.org/gecko'
+MAX_COMMENTS = 30
+MOZREVIEW_COMMENT_SUCCESS = '''
+C/C++ static analysis didn't find any defects in this patch. Hooray!
+'''
+MOZREVIEW_COMMENT_FAILURE = '''
+C/C++ static analysis found {} defect{} in this patch{}.
+
+You can run this analysis locally with: `./mach static-analysis check path/to/file.cpp`
+
+If you see a problem in this automated review, please report it here: http://bit.ly/2y9N9Vx
+'''
 
 
 class Workflow(object):
@@ -27,15 +38,25 @@ class Workflow(object):
     '''
     taskcluster = None
 
-    def __init__(self, cache_root, emails, mozreview, mozreview_enabled=False, client_id=None, access_token=None):  # noqa
+    def __init__(self, cache_root, emails, app_channel, mozreview_api_root, mozreview_enabled=False, client_id=None, access_token=None):  # noqa
         self.emails = emails
-        self.mozreview = mozreview
+        self.app_channel = app_channel
+        self.mozreview_api_root = mozreview_api_root
         self.mozreview_enabled = mozreview_enabled
         self.cache_root = cache_root
         assert os.path.isdir(self.cache_root), \
             'Cache root {} is not a dir.'.format(self.cache_root)
         assert 'MOZCONFIG' in os.environ, \
             'Missing MOZCONFIG in environment'
+
+        # Save Taskcluster ID for logging
+        if 'TASK_ID' in os.environ and 'RUN_ID' in os.environ:
+            self.taskcluster_id = '{} run:{}'.format(
+                os.environ['TASK_ID'],
+                os.environ['RUN_ID'],
+            )
+        else:
+            self.taskcluster_id = 'local instance'
 
         # Load TC services & secrets
         self.notify = get_service(
@@ -64,9 +85,6 @@ class Workflow(object):
         # Open new hg client
         self.hg = hglib.open(self.repo_dir)
 
-        # Setup clang
-        self.clang = ClangTidy(self.repo_dir, settings.target)
-
     def run(self, revision, review_request_id, diffset_revision):
         '''
         Run the static analysis workflow:
@@ -75,12 +93,32 @@ class Workflow(object):
          * Run static analysis
          * Publish results
         '''
+        # Add log to find Taskcluster task in papertrail
+        logger.info(
+            'New static analysis',
+            taskcluster=self.taskcluster_id,
+            channel=self.app_channel,
+            revision=revision,
+            review_request_id=review_request_id,
+            diffset_revision=diffset_revision,
+        )
+
+        # Create batch review
+        self.mozreview = BatchReview(
+            self.mozreview_api_root,
+            review_request_id,
+            diffset_revision,
+            max_comments=MAX_COMMENTS,
+        )
+
+        # Setup clang
+        clang = ClangTidy(self.repo_dir, settings.target, self.mozreview)
+
         # Force cleanup to reset tip
         # otherwise previous pull are there
         self.hg.update(rev=b'tip', clean=True)
 
         # Pull revision from review
-        logger.info('Pull from review', revision=revision)
         self.hg.pull(source=REPO_REVIEW, rev=revision, update=True, force=True)
 
         # Get the parents revisions
@@ -111,7 +149,7 @@ class Workflow(object):
 
         # Run static analysis through run-clang-tidy.py
         logger.info('Run clang-tidy...')
-        issues = self.clang.run(settings.clang_checkers, modified_files)
+        issues = clang.run(settings.clang_checkers, modified_files)
 
         logger.info('Detected {} code issue(s)'.format(len(issues)))
         if not issues:
@@ -129,28 +167,30 @@ class Workflow(object):
         '''
         Publish comments on mozreview
         '''
-
         # Filter issues to keep publishable checks
         # and non third party
         issues = list(filter(lambda i: i.is_publishable(), issues))
-        if not issues:
-            logger.info('No issues to publish on MozReview')
-            return
+        if issues:
+            # Build general comment
+            nb = len(issues)
+            extras = ' (only the first {} are reported here)'.format(MAX_COMMENTS)
+            comment = MOZREVIEW_COMMENT_FAILURE.format(
+                nb,
+                nb != 1 and 's' or '',
+                nb > MAX_COMMENTS and extras or ''
+            )
 
-        # Create batch review
-        review = BatchReview(
-            self.mozreview,
-            review_request_id,
-            diff_revision,
-        )
+            # Comment each issue
+            for issue in issues:
+                if self.mozreview_enabled:
+                    logger.info('Will publish about {}'.format(issue))
+                    self.mozreview.comment(issue.path, issue.line, 1, issue.mozreview_body)
+                else:
+                    logger.info('Should publish about {}'.format(issue))
 
-        # Comment each issue
-        for issue in issues:
-            if self.mozreview_enabled:
-                logger.info('Will publish about {}'.format(issue))
-                review.comment(issue.path, issue.line, 1, issue.body)
-            else:
-                logger.info('Should publish about {}'.format(issue))
+        else:
+            comment = MOZREVIEW_COMMENT_SUCCESS
+            logger.info('No issues to publish, send kudos.')
 
         if not self.mozreview_enabled:
             logger.info('Skipping Mozreview publication')
@@ -158,7 +198,7 @@ class Workflow(object):
 
         # Publish the review
         # without ship_it to avoid automatically r+
-        return review.publish(ship_it=False)
+        return self.mozreview.publish(body_top=comment, ship_it=False)
 
     def notify_admins(self, review_request_id, issues):
         '''
@@ -168,11 +208,12 @@ class Workflow(object):
             url='https://reviewboard.mozilla.org/r/{}/'.format(review_request_id), # noqa
             nb_publishable=sum([i.is_publishable() for i in issues]),
         )
-        content += '\n'.join([i.as_markdown() for i in issues])
+        content += '\n\n'.join([i.as_markdown() for i in issues])
+        subject = '[{}] New Static Analysis Review #{}'.format(self.app_channel, review_request_id)
         for email in self.emails:
             self.notify.email({
                 'address': email,
-                'subject': 'New Static Analysis Review',
+                'subject': subject,
                 'content': content,
                 'template': 'fullscreen',
             })

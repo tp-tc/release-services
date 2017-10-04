@@ -19,6 +19,11 @@ DEBUG = bool(os.environ.get('DEBUG', False))
 required = [
     'SECRET_KEY_BASE64',
     'DATABASE_URL',
+    'AUTH_DOMAIN',
+    'AUTH_CLIENT_ID',
+    'AUTH_CLIENT_SECRET',
+    'AUTH_REDIRECT_URI',
+    'REDIS_URL',
 ]
 
 secrets = cli_common.taskcluster.get_secrets(
@@ -57,6 +62,6 @@ else:
 if 'CACHE_KEY_PREFIX' not in CACHE:
     CACHE['CACHE_KEY_PREFIX'] = shipit_uplift.config.PROJECT_NAME + '-'
 
-if not DEBUG:
-    CACHE['CACHE_TYPE'] = 'redis'
-    CACHE['CACHE_REDIS_URL'] = secrets['REDIS_URL']
+REDIS_URL = secrets['REDIS_URL']
+CACHE['CACHE_TYPE'] = 'redis'
+CACHE['CACHE_REDIS_URL'] = REDIS_URL

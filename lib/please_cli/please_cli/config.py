@@ -220,6 +220,7 @@ PROJECTS = {
                 'url': 'https://staging.mozilla-releng.net',
                 'dns': 'dpwmwa9tge2p3.cloudfront.net.',
                 'csp': [
+                    'https://login.taskcluster.net',
                     'https://auth.taskcluster.net',
                 ],
             },
@@ -253,14 +254,14 @@ PROJECTS = {
                 'heroku_dyno_type': 'web',
                 'url': 'https://mapper.staging.mozilla-releng.net',
                 # TODO: switch to SSL Endpoint
-                'dns': 'mapper.staging.mozilla-releng.net.herokudns.com', 
+                'dns': 'mapper.staging.mozilla-releng.net.herokudns.com',
             },
             # 'production': {
             #     'heroku_app': 'releng-production-mapper',
             #     'heroku_dyno_type': 'web',
             #      # TODO: switch to SSL Endpoint
             #     'url': 'https://mapper.mozilla-releng.net',
-            #     'dns': 'mapper.mozilla-releng.net.herokudns.com', 
+            #     'dns': 'mapper.mozilla-releng.net.herokudns.com',
             # },
         },
     },
@@ -365,6 +366,7 @@ PROJECTS = {
                     'bugzilla-url': 'https://bugzilla.mozilla.org',
                 },
                 'csp': [
+                    'https://login.taskcluster.net',
                     'https://auth.taskcluster.net',
                     'https://bugzilla.mozilla.org',
                 ],
@@ -423,10 +425,10 @@ PROJECTS = {
                 'heroku_app': 'shipit-staging-pulse-listener',
                 'heroku_dyno_type': 'worker',
             },
-            # 'production': {
-            #     'heroku_app': 'shipit-production-pulse-listener',
-            #     'heroku_dyno_type': 'worker',
-            # },
+            'production': {
+                'heroku_app': 'shipit-production-pulse-listen',
+                'heroku_dyno_type': 'worker',
+            },
         },
     },
     'shipit-risk-assessment': {
@@ -480,7 +482,7 @@ PROJECTS = {
         'deploy': 'TASKCLUSTER_HOOK',
         'deploy_options': {
             'staging': {},
-            # 'production': {},
+            'production': {},
         },
     },
     'shipit-taskcluster': {
@@ -522,6 +524,7 @@ PROJECTS = {
         },
         'requires': [
             'postgresql',
+            'redis',
         ],
         'deploy': 'HEROKU',
         'deploy_options': {
