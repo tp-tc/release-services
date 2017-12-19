@@ -3,3 +3,8 @@
 libmozdata
 RBTools
 PyYAML
+parsepatch
+
+# Fixed versions
+six==1.10.0
+pyasn1==0.3.4

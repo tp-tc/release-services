@@ -222,16 +222,17 @@ PROJECTS = {
                     'https://auth.taskcluster.net',
                 ],
             },
-            'production': {
-                's3_bucket': 'releng-production-frontend',
-                'url': 'https://mozilla-releng.net',
-                'dns': 'd1qqwps52z1e12.cloudfront.net.',
-                'dns_domain': 'www.mozilla-releng.net',
-                'csp': [
-                    'https://login.taskcluster.net',
-                    'https://auth.taskcluster.net',
-                ],
-            },
+            # TODO: remove comment after freeze period
+            # 'production': {
+            #     's3_bucket': 'releng-production-frontend',
+            #     'url': 'https://mozilla-releng.net',
+            #     'dns': 'd1qqwps52z1e12.cloudfront.net.',
+            #     'dns_domain': 'www.mozilla-releng.net',
+            #     'csp': [
+            #         'https://login.taskcluster.net',
+            #         'https://auth.taskcluster.net',
+            #     ],
+            # },
         },
     },
     'releng-mapper': {
@@ -284,12 +285,13 @@ PROJECTS = {
                 'url': 'https://tooltool.staging.mozilla-releng.net',
                 'dns': 'shizuoka-60622.herokussl.com',
             },
-            'production': {
-                'heroku_app': 'releng-production-tooltool',
-                'heroku_dyno_type': 'web',
-                'url': 'https://tooltool.mozilla-releng.net',
-                'dns': 'kochi-11433.herokussl.com',
-            },
+            # TODO: remove comment after freeze period
+            # 'production': {
+            #     'heroku_app': 'releng-production-tooltool',
+            #     'heroku_dyno_type': 'web',
+            #     'url': 'https://tooltool.mozilla-releng.net',
+            #     'dns': 'kochi-11433.herokussl.com',
+            # },
         },
     },
     'releng-treestatus': {
@@ -313,13 +315,14 @@ PROJECTS = {
                 # TODO: we need to change this to SSL Endpoint
                 'dns': 'treestatus.staging.mozilla-releng.net.herokudns.com',
             },
-            'production': {
-                'heroku_app': 'releng-production-treestatus',
-                'heroku_dyno_type': 'web',
-                'url': 'https://treestatus.mozilla-releng.net',
-                # TODO: this needs to be updated in mozilla-releng/build-cloud-tools
-                'dns': 'kochi-31413.herokussl.com',
-            },
+            # TODO: remove comment after freeze period
+            # 'production': {
+            #     'heroku_app': 'releng-production-treestatus',
+            #     'heroku_dyno_type': 'web',
+            #     'url': 'https://treestatus.mozilla-releng.net',
+            #     # TODO: this needs to be updated in mozilla-releng/build-cloud-tools
+            #     'dns': 'kochi-31413.herokussl.com',
+            # },
         },
     },
     'shipit-bot-uplift': {
@@ -431,17 +434,17 @@ PROJECTS = {
             },
         },
     },
-    'shipit-risk-assessment': {
-        'checks': [
-            ('Checking code quality', 'flake8'),
-            ('Running tests', 'pytest tests/'),
-        ],
-        'deploy': 'TASKCLUSTER_HOOK',
-        'deploy_options': {
-            'staging': {},
-            # 'production': {},
-        },
-    },
+    #'shipit-risk-assessment': {
+    #    'checks': [
+    #        ('Checking code quality', 'flake8'),
+    #        ('Running tests', 'pytest tests/'),
+    #    ],
+    #    'deploy': 'TASKCLUSTER_HOOK',
+    #    'deploy_options': {
+    #        'staging': {},
+    #        # 'production': {},
+    #    },
+    #},
     'shipit-signoff': {
         'checks': [
             ('Checking code quality', 'flake8'),
@@ -539,6 +542,28 @@ PROJECTS = {
                 'heroku_dyno_type': 'web',
                 'url': 'https://uplift.shipit.mozilla-releng.net',
                 'dns': 'uplift.shipit.mozilla-releng.net.herokudns.com',
+            },
+        },
+    },
+    'shipit-workflow': {
+        'checks': [
+            ('Checking code quality', 'flake8'),
+            ('Running tests', 'pytest tests/'),
+        ],
+        'run': 'FLASK',
+        'run_options': {
+            'port': 8015,
+        },
+        'requires': [
+            'postgresql',
+        ],
+        'deploy_options': {
+            'staging': {
+                'heroku_app': 'releng-staging-shipit-workflow',
+                'heroku_dyno_type': 'web',
+                'url': 'https://shipit-workflow.staging.mozilla-releng.net',
+                # TODO: we need to change this to SSL Endpoint
+                'dns': 'shipit-workflow.staging.mozilla-releng.net.herokudns.com',
             },
         },
     },

@@ -2,10 +2,12 @@
 import errno
 import json
 import os
+import shutil
 import zipfile
 import requests
 import hglib
 from threading import Condition
+from concurrent.futures import ThreadPoolExecutor
 
 from cli_common.log import get_logger
 from cli_common.command import run_check
@@ -39,15 +41,21 @@ class CodeCov(object):
         self.access_token = access_token
 
         if revision is None:
-            self.task_id = taskcluster.get_last_task()
+            self.task_ids = [
+                taskcluster.get_last_task('linux'),
+                taskcluster.get_last_task('win'),
+            ]
 
-            task_data = taskcluster.get_task_details(self.task_id)
+            task_data = taskcluster.get_task_details(self.task_ids[0])
             self.revision = task_data['payload']['env']['GECKO_HEAD_REV']
             self.coveralls_token = 'NONE'
             self.codecov_token = 'NONE'
             self.from_pulse = False
         else:
-            self.task_id = taskcluster.get_task('mozilla-central', revision)
+            self.task_ids = [
+                taskcluster.get_task('mozilla-central', revision, 'linux'),
+                taskcluster.get_task('mozilla-central', revision, 'win'),
+            ]
             self.revision = revision
             self.coveralls_token = coveralls_token
             self.codecov_token = codecov_token
@@ -63,20 +71,27 @@ class CodeCov(object):
 
         logger.info('Mercurial revision', revision=self.revision)
 
-    def download_coverage_artifacts(self, build_task_id):
+    def download_coverage_artifacts(self):
         try:
             os.mkdir('ccov-artifacts')
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise e
 
-        task_data = taskcluster.get_task_details(build_task_id)
-
         def rewriting_task(path):
             return lambda: self.rewrite_jsvm_lcov(path)
 
-        tasks = taskcluster.get_tasks_in_group(task_data['taskGroupId'])
-        test_tasks = [t for t in tasks if taskcluster.is_coverage_task(t)]
+        # The test tasks for the Linux and Windows builds are in the same group,
+        # but the following code is generic and supports build tasks split in
+        # separate groups.
+        groups = set([taskcluster.get_task_details(build_task_id)['taskGroupId'] for build_task_id in self.task_ids])
+        test_tasks = [
+            task
+            for group in groups
+            for task in taskcluster.get_tasks_in_group(group)
+            if taskcluster.is_coverage_task(task)
+        ]
+
         with ThreadPoolExecutorResult() as executor:
             for test_task in test_tasks:
                 suite_name = taskcluster.get_suite_name(test_task)
@@ -169,7 +184,7 @@ class CodeCov(object):
           '--ignore-not-existing',
         ]
 
-        if out_format == 'coveralls':
+        if 'coveralls' in out_format:
             r = requests.get('https://hg.mozilla.org/mozilla-central/json-rev/%s' % self.revision)
             r.raise_for_status()
             push_id = r.json()['pushid']
@@ -214,14 +229,18 @@ class CodeCov(object):
                                     branch=b'tip')
 
         cmd.insert(0, hglib.HGPATH)
-        proc = hglib.util.popen(cmd)
-        out, err = proc.communicate()
-        if proc.returncode:
-            raise hglib.error.CommandError(cmd, proc.returncode, out, err)
 
-        hg = hglib.open(self.repo_dir)
+        def do_clone():
+            proc = hglib.util.popen(cmd)
+            out, err = proc.communicate()
+            if proc.returncode:
+                raise hglib.error.CommandError(cmd, proc.returncode, out, err)
 
-        hg.update(rev=revision, clean=True)
+            hg = hglib.open(self.repo_dir)
+
+            hg.update(rev=revision, clean=True)
+
+        retry(lambda: do_clone())
 
         logger.info('mozilla-central cloned')
 
@@ -231,8 +250,8 @@ class CodeCov(object):
             f.write('ac_add_options --enable-debug\n')
             f.write('ac_add_options --enable-artifact-builds\n')
 
-        run_check(['gecko-env', './mach', 'build'], cwd=self.repo_dir)
-        run_check(['gecko-env', './mach', 'build-backend', '-b', 'ChromeMap'], cwd=self.repo_dir)
+        retry(lambda: run_check(['gecko-env', './mach', 'build'], cwd=self.repo_dir))
+        retry(lambda: run_check(['gecko-env', './mach', 'build-backend', '-b', 'ChromeMap'], cwd=self.repo_dir))
 
         logger.info('Build successful')
 
@@ -263,14 +282,21 @@ class CodeCov(object):
 
                 requests.get('https://uplift.shipit.staging.mozilla-releng.net/coverage/changeset/%s' % changeset['node'])
         except Exception as e:
-            logger.warn('Error while requesting coverage data: ' + str(e))
+            logger.warn('Error while requesting coverage data', error=str(e))
 
     def generate_zero_coverage_report(self, report):
         report = json.loads(report.decode('utf-8'))  # Decoding is only necessary until Python 3.6.
 
         zero_coverage_files = []
         for sf in report['source_files']:
-            if all(c is None or c == 0 for c in sf['coverage']):
+            # For C/C++ source files, we can consider a file as being uncovered
+            # when all its source lines are uncovered.
+            all_lines_uncovered = all(c is None or c == 0 for c in sf['coverage'])
+            # For JavaScript files, we can't do the same, as the top-level is always
+            # executed, even if it just contains declarations. So, we need to check if
+            # all its functions, except the top-level, are uncovered.
+            all_functions_uncovered = all(f['exec'] is False or f['name'] == 'top-level' for f in sf['functions'])
+            if all_lines_uncovered or (len(sf['functions']) > 1 and all_functions_uncovered):
                 zero_coverage_files.append(sf['name'])
 
         with open('code-coverage-reports/zero_coverage_files.json', 'w') as f:
@@ -279,7 +305,7 @@ class CodeCov(object):
     def go(self):
         with ThreadPoolExecutorResult(max_workers=2) as executor:
             # Thread 1 - Download coverage artifacts.
-            executor.submit(lambda: self.download_coverage_artifacts(self.task_id))
+            executor.submit(lambda: self.download_coverage_artifacts())
 
             # Thread 2 - Clone and build mozilla-central
             clone_future = executor.submit(lambda: self.clone_mozilla_central(self.revision))
@@ -314,19 +340,21 @@ class CodeCov(object):
                 output = self.generate_info(self.revision, suite=suite, out_format='lcov')
 
                 self.generate_report(output, suite)
+                os.remove('%s.info' % suite)
 
                 run_check(['tar', '-cjf', 'code-coverage-reports/%s.tar.bz2' % suite, suite])
+                shutil.rmtree(os.path.join(os.getcwd(), suite))
 
                 logger.info('Suite report generated', suite=suite)
 
             def generate_suite_report_task(suite):
                 return lambda: generate_suite_report(suite)
 
-            for suite in self.suites:
-                with ThreadPoolExecutorResult() as executor:
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                for suite in self.suites:
                     executor.submit(generate_suite_report_task(suite))
 
-            self.generate_zero_coverage_report(self.generate_info(self.revision))
+            self.generate_zero_coverage_report(self.generate_info(self.revision, out_format='coveralls+'))
 
             os.chdir('code-coverage-reports')
             run_check(['git', 'config', '--global', 'http.postBuffer', '12M'])

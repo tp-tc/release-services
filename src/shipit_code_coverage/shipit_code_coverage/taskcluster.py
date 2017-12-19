@@ -9,16 +9,31 @@ index_base = 'https://index.taskcluster.net/v1/'
 queue_base = 'https://queue.taskcluster.net/v1/'
 
 
-def get_last_task():
-    r = requests.get(index_base + 'task/gecko.v2.mozilla-central.latest.firefox.linux64-ccov-opt')
+def _get_build_platform_name(platform):
+    if platform == 'linux':
+        return 'linux64-ccov-opt'
+    elif platform == 'win':
+        return 'win64-ccov-debug'
+    else:
+        raise Exception('Unsupported platform: %s' % platform)
+
+
+def get_last_task(platform):
+    r = requests.get(index_base + 'task/gecko.v2.mozilla-central.latest.firefox.' + _get_build_platform_name(platform))
     last_task = r.json()
     return last_task['taskId']
 
 
-def get_task(branch, revision):
-    r = requests.get(index_base + 'task/gecko.v2.%s.revision.%s.firefox.linux64-ccov-opt' % (branch, revision))
+def get_task(branch, revision, platform):
+    r = requests.get(index_base + 'task/gecko.v2.%s.revision.%s.firefox.%s' % (branch, revision, _get_build_platform_name(platform)))
     task = r.json()
-    return task['taskId']
+    if r.status_code == requests.codes.ok:
+        return task['taskId']
+    else:
+        if task['code'] == 'ResourceNotFound':
+            raise Exception('Code coverage build failed and was not indexed.')
+        else:
+            raise Exception('Unknown TaskCluster index error.')
 
 
 def get_task_details(task_id):
@@ -68,11 +83,17 @@ def download_artifact(task_id, suite, artifact):
     return artifact_path
 
 
+TEST_PLATFORMS = ['test-linux64-ccov/opt', 'test-windows10-64-ccov/debug']
+
+
 def is_coverage_task(task):
-    return task['task']['metadata']['name'].startswith('test-linux64-ccov')
+    return any(task['task']['metadata']['name'].startswith(t) for t in TEST_PLATFORMS)
 
 
 def get_suite_name(task):
     name = task['task']['metadata']['name']
-    name = name[len('test-linux64-ccov/opt-'):]
+    for t in TEST_PLATFORMS:
+        if name.startswith(t):
+            name = name[len(t) + 1:]
+            break
     return '-'.join([p for p in name.split('-') if p != 'e10s' and not p.isdigit()])
