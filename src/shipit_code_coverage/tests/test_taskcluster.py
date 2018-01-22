@@ -8,6 +8,14 @@ def test_last_task():
     assert taskcluster.get_last_task('win') is not None
 
 
+def test_get_task_status():
+    task_id = taskcluster.get_last_task('linux')
+    task_status = taskcluster.get_task_status(task_id)
+    assert task_status is not None
+    assert 'status' in task_status
+    assert 'state' in task_status['status']
+
+
 def test_get_task_details():
     task_id = taskcluster.get_last_task('linux')
     task_data = taskcluster.get_task_details(task_id)
@@ -78,18 +86,18 @@ def test_is_coverage_task():
     assert not taskcluster.is_coverage_task(nocov_task)
 
 
-def test_get_suite_name():
+def test_get_chunk_name():
     tests = [
-        ('test-linux64-ccov/opt-mochitest-1', 'mochitest'),
-        ('test-linux64-ccov/opt-mochitest-e10s-7', 'mochitest'),
+        ('test-linux64-ccov/opt-mochitest-1', 'mochitest-1'),
+        ('test-linux64-ccov/opt-mochitest-e10s-7', 'mochitest-7'),
         ('test-linux64-ccov/opt-cppunit', 'cppunit'),
         ('test-linux64-ccov/opt-firefox-ui-functional-remote-e10s', 'firefox-ui-functional-remote'),
-        ('test-windows10-64-ccov/debug-mochitest-1', 'mochitest'),
-        ('test-windows10-64-ccov/debug-mochitest-e10s-7', 'mochitest'),
+        ('test-windows10-64-ccov/debug-mochitest-1', 'mochitest-1'),
+        ('test-windows10-64-ccov/debug-mochitest-e10s-7', 'mochitest-7'),
         ('test-windows10-64-ccov/debug-cppunit', 'cppunit'),
     ]
 
-    for (name, suite) in tests:
+    for (name, chunk) in tests:
         task = {
             'task': {
                 'metadata': {
@@ -98,4 +106,34 @@ def test_get_suite_name():
             }
         }
 
-        assert taskcluster.get_suite_name(task) == suite
+        assert taskcluster.get_chunk_name(task) == chunk
+
+
+def test_get_suite_name():
+    tests = [
+        ('mochitest-1', 'mochitest'),
+        ('mochitest-7', 'mochitest'),
+        ('cppunit', 'cppunit'),
+        ('firefox-ui-functional-remote', 'firefox-ui-functional-remote'),
+    ]
+
+    for (chunk, suite) in tests:
+        assert taskcluster.get_suite_name(chunk) == suite
+
+
+def test_get_platform_name():
+    tests = [
+        ('test-linux64-ccov/opt-mochitest-1', 'linux'),
+        ('test-windows10-64-ccov/debug-mochitest-1', 'windows'),
+    ]
+
+    for (name, platform) in tests:
+        task = {
+            'task': {
+                'metadata': {
+                    'name': name
+                }
+            }
+        }
+
+        assert taskcluster.get_platform_name(task) == platform

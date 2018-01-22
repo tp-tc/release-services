@@ -1,20 +1,23 @@
 # -*- coding: utf-8 -*-
-import errno
 import json
 import os
 import shutil
-import zipfile
+import tarfile
+from zipfile import ZipFile
 import requests
 import hglib
-from threading import Condition
+from threading import Condition, Lock
+import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor
+import sqlite3
+import time
 
 from cli_common.log import get_logger
 from cli_common.command import run_check
 from cli_common.taskcluster import get_service
 
 from shipit_code_coverage import taskcluster, uploader
-from shipit_code_coverage.utils import wait_until, retry, ThreadPoolExecutorResult
+from shipit_code_coverage.utils import mkdir, wait_until, retry, ThreadPoolExecutorResult
 
 
 logger = get_logger(__name__)
@@ -71,15 +74,37 @@ class CodeCov(object):
 
         logger.info('Mercurial revision', revision=self.revision)
 
-    def download_coverage_artifacts(self):
-        try:
-            os.mkdir('ccov-artifacts')
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise e
+    def get_chunks(self):
+        return list(set([f.split('_')[1] for f in os.listdir('ccov-artifacts')]))
 
-        def rewriting_task(path):
-            return lambda: self.rewrite_jsvm_lcov(path)
+    def get_coverage_artifacts(self, suite=None, chunk=None):
+        files = os.listdir('ccov-artifacts')
+
+        if suite is not None and chunk is not None:
+            raise Exception('suite and chunk can\'t both have a value')
+
+        filtered_files = []
+        for fname in files:
+            # grcov artifacts always have 'grcov' in the name and are ZIP files.
+            if 'grcov' in fname and not fname.endswith('.zip'):
+                continue
+            # jsvm artifacts always have 'jsvm' in the name and are not ZIP files.
+            if 'jsvm' in fname and fname.endswith('.zip'):
+                continue
+
+            # If suite and chunk are None, return all artifacts.
+            # Otherwise, only return the ones which have suite or chunk in their name.
+            if (
+                   (suite is None and chunk is None) or
+                   (suite is not None and ('%s' % suite) in fname) or
+                   (chunk is not None and ('%s_code-coverage' % chunk) in fname)
+               ):
+                filtered_files.append('ccov-artifacts/' + fname)
+
+        return filtered_files
+
+    def download_coverage_artifacts(self):
+        mkdir('ccov-artifacts')
 
         # The test tasks for the Linux and Windows builds are in the same group,
         # but the following code is generic and supports build tasks split in
@@ -92,23 +117,63 @@ class CodeCov(object):
             if taskcluster.is_coverage_task(task)
         ]
 
-        with ThreadPoolExecutorResult() as executor:
-            for test_task in test_tasks:
-                suite_name = taskcluster.get_suite_name(test_task)
-                # Ignore awsy and talos as they aren't actually suites of tests.
-                if any(to_ignore in suite_name for to_ignore in self.suites_to_ignore):
+        FINISHED_STATUSES = ['completed', 'failed', 'exception']
+        ALL_STATUSES = FINISHED_STATUSES + ['unscheduled', 'pending', 'running']
+
+        downloaded_tasks = {}
+        downloaded_tasks_lock = Lock()
+
+        def should_download(status, chunk_name, platform_name):
+            with downloaded_tasks_lock:
+                if (chunk_name, platform_name) not in downloaded_tasks:
+                    return True
+
+                other_status = downloaded_tasks[(chunk_name, platform_name)]
+
+                if (status == 'failed' and other_status == 'exception') or (status == 'completed' and other_status != 'completed'):
+                    downloaded_tasks[(chunk_name, platform_name)] = status
+                    return True
+                else:
+                    return False
+
+        def download_artifact(test_task):
+            status = test_task['status']['state']
+            assert status in ALL_STATUSES
+            while status not in FINISHED_STATUSES:
+                time.sleep(60)
+                status = taskcluster.get_task_status(test_task['status']['taskId'])['status']['state']
+                assert status in ALL_STATUSES
+
+            chunk_name = taskcluster.get_chunk_name(test_task)
+            platform_name = taskcluster.get_platform_name(test_task)
+            # Ignore awsy and talos as they aren't actually suites of tests.
+            if any(to_ignore in chunk_name for to_ignore in self.suites_to_ignore):
+                return
+
+            # If we have already downloaded this chunk from another task, check if the
+            # other task has a better status than this one.
+            if not should_download(status, chunk_name, platform_name):
+                return
+
+            test_task_id = test_task['status']['taskId']
+            for artifact in taskcluster.get_task_artifacts(test_task_id):
+                if not any(n in artifact['name'] for n in ['code-coverage-grcov.zip', 'code-coverage-jsvm.zip']):
                     continue
 
-                test_task_id = test_task['status']['taskId']
-                for artifact in taskcluster.get_task_artifacts(test_task_id):
-                    if not any(n in artifact['name'] for n in ['code-coverage-grcov.zip', 'code-coverage-jsvm.zip']):
-                        continue
+                artifact_path = taskcluster.download_artifact(test_task_id, chunk_name, platform_name, artifact)
+                logger.info('%s artifact downloaded' % artifact_path)
+                if 'code-coverage-jsvm.zip' in artifact['name']:
+                    self.rewrite_jsvm_lcov(artifact_path)
+                    logger.info('%s artifact rewritten' % artifact_path)
 
-                    artifact_path = taskcluster.download_artifact(test_task_id, suite_name, artifact)
-                    if 'code-coverage-jsvm.zip' in artifact['name']:
-                        executor.submit(rewriting_task(artifact_path))
+        def download_artifact_task(test_task):
+            return lambda: download_artifact(test_task)
 
-            logger.info('Code coverage artifacts downloaded')
+        with ThreadPoolExecutorResult() as executor:
+            for test_task in test_tasks:
+                executor.submit(download_artifact_task(test_task))
+
+        logger.info('Code coverage artifacts downloaded')
 
     def update_github_repo(self):
         run_check(['git', 'config', '--global', 'http.postBuffer', '12M'])
@@ -148,33 +213,21 @@ class CodeCov(object):
                 self.build_finished_cv.wait()
 
         out_dir = zip_file_path[:-4]
+        out_file = out_dir + '.info'
 
-        zip_file = zipfile.ZipFile(zip_file_path, 'r')
-        zip_file.extractall(out_dir)
-        zip_file.close()
+        with ZipFile(zip_file_path, 'r') as z:
+            z.extractall(out_dir)
 
-        lcov_files = [os.path.abspath(os.path.join(out_dir, f)) for f in os.listdir(out_dir)]
-        run_check(['gecko-env', './mach', 'python', 'python/mozbuild/mozbuild/codecoverage/lcov_rewriter.py'] + lcov_files, cwd=self.repo_dir)
+        run_check([
+            'gecko-env', './mach', 'python',
+            'python/mozbuild/mozbuild/codecoverage/lcov_rewriter.py',
+            os.path.abspath(out_dir),
+            '--output-file', os.path.abspath(out_file)
+        ], cwd=self.repo_dir)
 
-        for lcov_file in lcov_files:
-            os.remove(lcov_file)
+        shutil.rmtree(out_dir)
 
-        lcov_out_files = [os.path.abspath(os.path.join(out_dir, f)) for f in os.listdir(out_dir)]
-        for lcov_out_file in lcov_out_files:
-            os.rename(lcov_out_file, lcov_out_file[:-4])
-
-    def generate_info(self, commit_sha, suite=None, out_format='coveralls'):
-        files = os.listdir('ccov-artifacts')
-        ordered_files = []
-        for fname in files:
-            if 'grcov' in fname and not fname.endswith('.zip'):
-                continue
-            if 'jsvm' in fname and fname.endswith('.zip'):
-                continue
-
-            if suite is None or suite in fname:
-                ordered_files.append('ccov-artifacts/' + fname)
-
+    def generate_info(self, commit_sha=None, suite=None, chunk=None, out_format='coveralls', options=[]):
         cmd = [
           'grcov',
           '-t', out_format,
@@ -201,7 +254,8 @@ class CodeCov(object):
             else:
                 cmd.extend(['--service-job-number', '1'])
 
-        cmd.extend(ordered_files)
+        cmd.extend(self.get_coverage_artifacts(suite, chunk))
+        cmd.extend(options)
 
         return run_check(cmd)
 
@@ -284,23 +338,99 @@ class CodeCov(object):
         except Exception as e:
             logger.warn('Error while requesting coverage data', error=str(e))
 
-    def generate_zero_coverage_report(self, report):
+    def generate_per_suite_reports(self):
+        def generate_suite_report(suite):
+            output = self.generate_info(suite=suite, out_format='lcov')
+
+            self.generate_report(output, suite)
+            os.remove('%s.info' % suite)
+
+            run_check(['tar', '-cjf', 'code-coverage-reports/%s.tar.bz2' % suite, suite])
+            shutil.rmtree(os.path.join(os.getcwd(), suite))
+
+            logger.info('Suite report generated', suite=suite)
+
+        def generate_suite_report_task(suite):
+            return lambda: generate_suite_report(suite)
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            for suite in self.suites:
+                executor.submit(generate_suite_report_task(suite))
+
+    def generate_zero_coverage_report(self):
+        report = self.generate_info(self.revision, out_format='coveralls+')
         report = json.loads(report.decode('utf-8'))  # Decoding is only necessary until Python 3.6.
 
         zero_coverage_files = []
+        zero_coverage_functions = {}
         for sf in report['source_files']:
+            name = sf['name']
+
             # For C/C++ source files, we can consider a file as being uncovered
             # when all its source lines are uncovered.
             all_lines_uncovered = all(c is None or c == 0 for c in sf['coverage'])
             # For JavaScript files, we can't do the same, as the top-level is always
             # executed, even if it just contains declarations. So, we need to check if
             # all its functions, except the top-level, are uncovered.
-            all_functions_uncovered = all(f['exec'] is False or f['name'] == 'top-level' for f in sf['functions'])
+            all_functions_uncovered = True
+            for f in sf['functions']:
+                f_name = f['name']
+                if f_name == 'top-level':
+                    continue
+
+                if not f['exec']:
+                    if name in zero_coverage_functions:
+                        zero_coverage_functions[name].append(f['name'])
+                    else:
+                        zero_coverage_functions[name] = [f['name']]
+                else:
+                    all_functions_uncovered = False
+
             if all_lines_uncovered or (len(sf['functions']) > 1 and all_functions_uncovered):
-                zero_coverage_files.append(sf['name'])
+                zero_coverage_files.append(name)
 
         with open('code-coverage-reports/zero_coverage_files.json', 'w') as f:
             json.dump(zero_coverage_files, f)
+
+        mkdir('code-coverage-reports/zero_coverage_functions')
+
+        zero_coverage_function_counts = []
+        for fname, functions in zero_coverage_functions.items():
+            zero_coverage_function_counts.append({
+                'name': fname,
+                'funcs': len(functions),
+            })
+            with open('code-coverage-reports/zero_coverage_functions/%s.json' % fname.replace('/', '_'), 'w') as f:
+                json.dump(functions, f)
+
+        with open('code-coverage-reports/zero_coverage_functions.json', 'w') as f:
+            json.dump(zero_coverage_function_counts, f)
+
+    def generate_files_list(self, covered=True, chunk=None):
+        options = ['--filter-covered', '--threads', '2']
+        files = self.generate_info(chunk=chunk, out_format='files', options=options)
+        return files.splitlines()
+
+    def generate_chunk_mapping(self):
+        def get_files_task(chunk):
+            return lambda: (chunk, self.generate_files_list(True, chunk=chunk))
+
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = []
+            for chunk in self.get_chunks():
+                futures.append(executor.submit(get_files_task(chunk)))
+
+            with sqlite3.connect('chunk_mapping.db') as conn:
+                c = conn.cursor()
+                c.execute('CREATE TABLE files (path text, chunk text)')
+
+                for future in concurrent.futures.as_completed(futures):
+                    (chunk, files) = future.result()
+                    c.executemany('INSERT INTO files VALUES (?,?)', [(f, chunk) for f in files])
+
+        tar = tarfile.open('code-coverage-reports/chunk_mapping.tar.xz', 'w:xz')
+        tar.add('chunk_mapping.db')
+        tar.close()
 
     def go(self):
         with ThreadPoolExecutorResult(max_workers=2) as executor:
@@ -309,6 +439,9 @@ class CodeCov(object):
 
             # Thread 2 - Clone and build mozilla-central
             clone_future = executor.submit(lambda: self.clone_mozilla_central(self.revision))
+            # Make sure cloning mozilla-central didn't fail before building.
+            clone_future.add_done_callback(lambda f: f.result())
+            # Now we can build.
             clone_future.add_done_callback(lambda f: self.build_files())
 
         if self.from_pulse:
@@ -330,31 +463,13 @@ class CodeCov(object):
 
             self.prepopulate_cache(commit_sha)
         else:
-            try:
-                os.mkdir('code-coverage-reports')
-            except OSError as e:
-                if e.errno != errno.EEXIST:
-                    raise e
+            mkdir('code-coverage-reports')
 
-            def generate_suite_report(suite):
-                output = self.generate_info(self.revision, suite=suite, out_format='lcov')
+            self.generate_per_suite_reports()
 
-                self.generate_report(output, suite)
-                os.remove('%s.info' % suite)
+            self.generate_zero_coverage_report()
 
-                run_check(['tar', '-cjf', 'code-coverage-reports/%s.tar.bz2' % suite, suite])
-                shutil.rmtree(os.path.join(os.getcwd(), suite))
-
-                logger.info('Suite report generated', suite=suite)
-
-            def generate_suite_report_task(suite):
-                return lambda: generate_suite_report(suite)
-
-            with ThreadPoolExecutor(max_workers=2) as executor:
-                for suite in self.suites:
-                    executor.submit(generate_suite_report_task(suite))
-
-            self.generate_zero_coverage_report(self.generate_info(self.revision, out_format='coveralls+'))
+            self.generate_chunk_mapping()
 
             os.chdir('code-coverage-reports')
             run_check(['git', 'config', '--global', 'http.postBuffer', '12M'])
