@@ -3,10 +3,9 @@ import json
 import os
 import shutil
 import tarfile
-from zipfile import ZipFile
 import requests
 import hglib
-from threading import Condition, Lock
+from threading import Lock
 import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor
 import sqlite3
@@ -44,35 +43,35 @@ class CodeCov(object):
         self.access_token = access_token
 
         if revision is None:
-            self.task_ids = [
-                taskcluster.get_last_task('linux'),
-                taskcluster.get_last_task('win'),
-            ]
+            self.task_ids = {
+                'linux': taskcluster.get_last_task('linux'),
+                'windows': taskcluster.get_last_task('win'),
+            }
 
-            task_data = taskcluster.get_task_details(self.task_ids[0])
+            task_data = taskcluster.get_task_details(self.task_ids['linux'])
             self.revision = task_data['payload']['env']['GECKO_HEAD_REV']
             self.coveralls_token = 'NONE'
             self.codecov_token = 'NONE'
             self.from_pulse = False
+            logger.info('Mercurial revision', revision=self.revision)
         else:
-            self.task_ids = [
-                taskcluster.get_task('mozilla-central', revision, 'linux'),
-                taskcluster.get_task('mozilla-central', revision, 'win'),
-            ]
+            logger.info('Mercurial revision', revision=revision)
+            self.task_ids = {
+                'linux': taskcluster.get_task('mozilla-central', revision, 'linux'),
+                'windows': taskcluster.get_task('mozilla-central', revision, 'win'),
+            }
             self.revision = revision
             self.coveralls_token = coveralls_token
             self.codecov_token = codecov_token
             self.from_pulse = True
-
-        self.build_finished = False
-        self.build_finished_cv = Condition()
 
         if self.from_pulse:
             self.suites_to_ignore = ['awsy', 'talos']
         else:
             self.suites_to_ignore = []
 
-        logger.info('Mercurial revision', revision=self.revision)
+    def get_artifact_path(self, platform, chunk, artifact):
+        return 'ccov-artifacts/%s_%s_%s' % (platform, chunk, os.path.basename(artifact['name']))
 
     def get_chunks(self):
         return list(set([f.split('_')[1] for f in os.listdir('ccov-artifacts')]))
@@ -85,13 +84,6 @@ class CodeCov(object):
 
         filtered_files = []
         for fname in files:
-            # grcov artifacts always have 'grcov' in the name and are ZIP files.
-            if 'grcov' in fname and not fname.endswith('.zip'):
-                continue
-            # jsvm artifacts always have 'jsvm' in the name and are not ZIP files.
-            if 'jsvm' in fname and fname.endswith('.zip'):
-                continue
-
             # If suite and chunk are None, return all artifacts.
             # Otherwise, only return the ones which have suite or chunk in their name.
             if (
@@ -109,7 +101,7 @@ class CodeCov(object):
         # The test tasks for the Linux and Windows builds are in the same group,
         # but the following code is generic and supports build tasks split in
         # separate groups.
-        groups = set([taskcluster.get_task_details(build_task_id)['taskGroupId'] for build_task_id in self.task_ids])
+        groups = set([taskcluster.get_task_details(build_task_id)['taskGroupId'] for build_task_id in self.task_ids.values()])
         test_tasks = [
             task
             for group in groups
@@ -119,22 +111,36 @@ class CodeCov(object):
 
         FINISHED_STATUSES = ['completed', 'failed', 'exception']
         ALL_STATUSES = FINISHED_STATUSES + ['unscheduled', 'pending', 'running']
+        STATUS_VALUE = {
+            'exception': 1,
+            'failed': 2,
+            'completed': 3,
+        }
 
         downloaded_tasks = {}
         downloaded_tasks_lock = Lock()
 
         def should_download(status, chunk_name, platform_name):
             with downloaded_tasks_lock:
+                # If the chunk hasn't been downloaded before, this is obviously the best task
+                # to download it from.
                 if (chunk_name, platform_name) not in downloaded_tasks:
-                    return True
-
-                other_status = downloaded_tasks[(chunk_name, platform_name)]
-
-                if (status == 'failed' and other_status == 'exception') or (status == 'completed' and other_status != 'completed'):
-                    downloaded_tasks[(chunk_name, platform_name)] = status
-                    return True
+                    download_lock = Lock()
+                    downloaded_tasks[(chunk_name, platform_name)] = {
+                        'status': status,
+                        'lock': download_lock,
+                    }
                 else:
-                    return False
+                    task = downloaded_tasks[(chunk_name, platform_name)]
+
+                    if STATUS_VALUE[status] > STATUS_VALUE[task['status']]:
+                        task['status'] = status
+                        download_lock = task['lock']
+                    else:
+                        return None
+
+                download_lock.acquire()
+                return download_lock
 
         def download_artifact(test_task):
             status = test_task['status']['state']
@@ -152,7 +158,8 @@ class CodeCov(object):
 
             # If we have already downloaded this chunk from another task, check if the
             # other task has a better status than this one.
-            if not should_download(status, chunk_name, platform_name):
+            download_lock = should_download(status, chunk_name, platform_name)
+            if download_lock is None:
                 return
 
             test_task_id = test_task['status']['taskId']
@@ -160,11 +167,11 @@ class CodeCov(object):
                 if not any(n in artifact['name'] for n in ['code-coverage-grcov.zip', 'code-coverage-jsvm.zip']):
                     continue
 
-                artifact_path = taskcluster.download_artifact(test_task_id, chunk_name, platform_name, artifact)
+                artifact_path = self.get_artifact_path(platform_name, chunk_name, artifact)
+                taskcluster.download_artifact(artifact_path, test_task_id, artifact['name'])
                 logger.info('%s artifact downloaded' % artifact_path)
-                if 'code-coverage-jsvm.zip' in artifact['name']:
-                    self.rewrite_jsvm_lcov(artifact_path)
-                    logger.info('%s artifact rewritten' % artifact_path)
+
+            download_lock.release()
 
         def download_artifact_task(test_task):
             return lambda: download_artifact(test_task)
@@ -206,26 +213,6 @@ class CodeCov(object):
         if ret is None:
             raise Exception('Mercurial commit is not available yet on mozilla/gecko-dev.')
         return ret
-
-    def rewrite_jsvm_lcov(self, zip_file_path):
-        with self.build_finished_cv:
-            while not self.build_finished:
-                self.build_finished_cv.wait()
-
-        out_dir = zip_file_path[:-4]
-        out_file = out_dir + '.info'
-
-        with ZipFile(zip_file_path, 'r') as z:
-            z.extractall(out_dir)
-
-        run_check([
-            'gecko-env', './mach', 'python',
-            'python/mozbuild/mozbuild/codecoverage/lcov_rewriter.py',
-            os.path.abspath(out_dir),
-            '--output-file', os.path.abspath(out_file)
-        ], cwd=self.repo_dir)
-
-        shutil.rmtree(out_dir)
 
     def generate_info(self, commit_sha=None, suite=None, chunk=None, out_format='coveralls', options=[]):
         cmd = [
@@ -297,21 +284,6 @@ class CodeCov(object):
         retry(lambda: do_clone())
 
         logger.info('mozilla-central cloned')
-
-    def build_files(self):
-        with open(os.path.join(self.repo_dir, '.mozconfig'), 'w') as f:
-            f.write('mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-firefox\n')
-            f.write('ac_add_options --enable-debug\n')
-            f.write('ac_add_options --enable-artifact-builds\n')
-
-        retry(lambda: run_check(['gecko-env', './mach', 'build'], cwd=self.repo_dir))
-        retry(lambda: run_check(['gecko-env', './mach', 'build-backend', '-b', 'ChromeMap'], cwd=self.repo_dir))
-
-        logger.info('Build successful')
-
-        self.build_finished = True
-        with self.build_finished_cv:
-            self.build_finished_cv.notify_all()
 
     def prepopulate_cache(self, commit_sha):
         try:
@@ -437,12 +409,8 @@ class CodeCov(object):
             # Thread 1 - Download coverage artifacts.
             executor.submit(lambda: self.download_coverage_artifacts())
 
-            # Thread 2 - Clone and build mozilla-central
-            clone_future = executor.submit(lambda: self.clone_mozilla_central(self.revision))
-            # Make sure cloning mozilla-central didn't fail before building.
-            clone_future.add_done_callback(lambda f: f.result())
-            # Now we can build.
-            clone_future.add_done_callback(lambda f: self.build_files())
+            # Thread 2 - Clone mozilla-central.
+            executor.submit(lambda: self.clone_mozilla_central(self.revision))
 
         if self.from_pulse:
             if self.gecko_dev_user is not None and self.gecko_dev_pwd is not None:

@@ -249,7 +249,18 @@ let
       };
     };
 
-
+    "codespell" = python.mkDerivation {
+      name = "codespell-1.11.0";
+      src = pkgs.fetchurl { url = "https://pypi.python.org/packages/01/3d/f00eeb4b513ce5724366026a60867920a63d6d4362977bc18f05816ae740/codespell-1.11.0.tar.gz"; sha256 = "259ad215acc3b3406d65490224d70c6c85068b0b14d997728ed5b1d2ef275b6e"; };
+      doCheck = commonDoCheck;
+      buildInputs = commonBuildInputs;
+      propagatedBuildInputs = [ ];
+      meta = with pkgs.stdenv.lib; {
+        homepage = "https://github.com/lucasdemarchi/codespell/";
+        license = "License :: OSI Approved";
+        description = "Codespell";
+      };
+    };
 
     "cookies" = python.mkDerivation {
       name = "cookies-2.2.1";
@@ -287,7 +298,36 @@ let
       };
     };
 
+    "datadog" = python.mkDerivation {
+      name = "datadog-0.18.0";
+      # Next update, make sure the datagog PR #221 is in release (should be OK for 0.19.0)
+      src = pkgs.fetchurl { url = "https://github.com/DataDog/datadogpy/archive/9b4b6ae2b6a2e1472caa201f3077bce1081aa43b.tar.gz"; sha256 = "00a391cmd9ajhnl3llnq9jv2648xxnq9qycp1j8ny4gfxvcf78ng"; };
+      doCheck = commonDoCheck;
+      buildInputs = commonBuildInputs;
+      propagatedBuildInputs = [
+      self."decorator"
+      self."requests"
+      self."simplejson"
+    ];
+      meta = with pkgs.stdenv.lib; {
+        homepage = "https://www.datadoghq.com";
+        license = licenses.bsdOriginal;
+        description = "The Datadog Python library";
+      };
+    };
 
+    "decorator" = python.mkDerivation {
+      name = "decorator-4.2.1";
+      src = pkgs.fetchurl { url = "https://pypi.python.org/packages/70/f1/cb9373195639db13063f55eb06116310ad691e1fd125e6af057734dc44ea/decorator-4.2.1.tar.gz"; sha256 = "7d46dd9f3ea1cf5f06ee0e4e1277ae618cf48dfb10ada7c8427cd46c42702a0e"; };
+      doCheck = commonDoCheck;
+      buildInputs = commonBuildInputs;
+      propagatedBuildInputs = [ ];
+      meta = with pkgs.stdenv.lib; {
+        homepage = "https://github.com/micheles/decorator";
+        license = licenses.bsdOriginal;
+        description = "Better living through Python with decorators";
+      };
+    };
 
     "elasticsearch" = python.mkDerivation {
       name = "elasticsearch-6.0.0";
@@ -577,6 +617,32 @@ let
 
 
 
+    "pathspec" = python.mkDerivation {
+      name = "pathspec-0.5.5";
+      src = pkgs.fetchurl { url = "https://pypi.python.org/packages/9f/b/5a901a3b1eeebf83af6da74ecca69d7daf5189e450f0f4cccf9c19132651/pathspec-0.5.5.tar.gz"; sha256 = "72c495d1bbe76674219e307f6d1c6062f2e1b0b483a5e4886435127d0df3d0d3"; };
+      doCheck = commonDoCheck;
+      buildInputs = commonBuildInputs;
+      propagatedBuildInputs = [ ];
+      meta = with pkgs.stdenv.lib; {
+        homepage = "https://github.com/cpburnz/python-path-specification";
+        license = licenses.mpl20;
+        description = "Utility library for gitignore style pattern matching of file paths.";
+      };
+    };
+
+    "pluggy" = python.mkDerivation {
+      name = "pluggy-0.6.0";
+      src = pkgs.fetchurl { url = "https://pypi.python.org/packages/11/bf/cbeb8cdfaffa9f2ea154a30ae31a9d04a1209312e2919138b4171a1f8199/pluggy-0.6.0.tar.gz"; sha256 = "7f8ae7f5bdf75671a718d2daf0a64b7885f74510bcd98b1a0bb420eb9a9d0cff"; };
+      doCheck = commonDoCheck;
+      buildInputs = commonBuildInputs;
+      propagatedBuildInputs = [ ];
+      meta = with pkgs.stdenv.lib; {
+        homepage = "https://github.com/pytest-dev/pluggy";
+        license = licenses.mit;
+        description = "plugin and hook calling mechanisms for python";
+      };
+    };
+
     "py" = python.mkDerivation {
       name = "py-1.5.2";
       src = pkgs.fetchurl { url = "https://pypi.python.org/packages/90/e3/e075127d39d35f09a500ebb4a90afd10f9ef0a1d28a6d09abeec0e444fdd/py-1.5.2.tar.gz"; sha256 = "ca18943e28235417756316bfada6cd96b23ce60dd532642690dcfdaba988a76d"; };
@@ -849,7 +915,18 @@ let
       };
     };
 
-
+    "simplejson" = python.mkDerivation {
+      name = "simplejson-3.13.2";
+      src = pkgs.fetchurl { url = "https://pypi.python.org/packages/0d/3f/3a16847fe5c010110a8f54dd8fe7b091b4e22922def374fe1cce9c1cb7e9/simplejson-3.13.2.tar.gz"; sha256 = "4c4ecf20e054716cc1e5a81cadc44d3f4027108d8dd0861d8b1e3bd7a32d4f0a"; };
+      doCheck = commonDoCheck;
+      buildInputs = commonBuildInputs;
+      propagatedBuildInputs = [ ];
+      meta = with pkgs.stdenv.lib; {
+        homepage = "http://github.com/simplejson/simplejson";
+        license = licenses.mit;
+        description = "Simple, fast, extensible JSON encoder/decoder for Python";
+      };
+    };
 
     "six" = python.mkDerivation {
       name = "six-1.10.0";
@@ -980,6 +1057,24 @@ let
         homepage = "https://github.com/cscorley/whatthepatch";
         license = licenses.mit;
         description = "A patch parsing library.";
+      };
+    };
+
+
+
+    "yamllint" = python.mkDerivation {
+      name = "yamllint-1.10.0";
+      src = pkgs.fetchurl { url = "https://pypi.python.org/packages/47/b9/512bbd1b8ee92196548d56eba7ca1242f5eb14255fa44f772399abdb9bde/yamllint-1.10.0.tar.gz"; sha256 = "056d634bba39e34cb367a810af6abd534d5b97b0bdd9f8f116616bf26ef379b3"; };
+      doCheck = commonDoCheck;
+      buildInputs = commonBuildInputs;
+      propagatedBuildInputs = [
+      self."PyYAML"
+      self."pathspec"
+    ];
+      meta = with pkgs.stdenv.lib; {
+        homepage = "https://github.com/adrienverge/yamllint";
+        license = licenses.gpl3;
+        description = "A linter for YAML files.";
       };
     };
 
