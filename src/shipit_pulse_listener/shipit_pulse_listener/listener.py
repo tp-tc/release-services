@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from cli_common.pulse import run_consumer
 from cli_common.log import get_logger
+from cli_common.utils import retry
 from shipit_pulse_listener.hook import Hook, PulseHook
 from shipit_pulse_listener import task_monitoring
 import requests
@@ -18,6 +19,8 @@ class HookPhabricator(Hook):
     Taskcluster hook handling the static analysis
     for Phabricator differentials
     '''
+    latest_id = None
+
     def __init__(self, configuration):
         assert 'hookId' in configuration
         super().__init__(
@@ -31,47 +34,48 @@ class HookPhabricator(Hook):
         self.api_url = configuration['phabricator_url']
         self.api_token = configuration['phabricator_token']
 
-        # Start on first page
-        self.before = None
+        # Start by getting top id
+        diffs, _ = self.request_phabricator(limit=1)
+        assert len(diffs) == 1
+        self.latest_id = diffs[0]['id']
+
+    def request_phabricator(self, limit=20, order='newest'):
+        '''
+        Load raw differential objects from the api
+        '''
+        logger.info('Loading phabricator differentials', after=self.latest_id, limit=limit, order=order)
+        url = '{}/differential.diff.search'.format(self.api_url)
+        payload = {
+            'api.token': self.api_token,
+            'after': self.latest_id,
+            'order': order,
+            'limit': limit,
+        }
+        response = requests.post(url, payload)
+        response.raise_for_status()
+        data = response.json()
+        assert data['error_code'] is None, \
+            'Conduit error: {} - {}'.format(
+                data['error_code'],
+                data['error_info'],
+            )
+
+        return data['result']['data'], data['result']['cursor']['after']
 
     def list_differential(self):
         '''
-        List new differential items
+        List new differential items using pagination
+        using an iterator
         '''
-        url = '{}/differential.revision.search'.format(self.api_url)
-        after = None
-        while True:
-            logger.info('Loading phabricator differentials', after=after, before=self.before)
-            payload = {
-                'api.token': self.api_token,
-                'after': after,
-                'limit': 20,
-            }
-            if after is None and self.before:
-                # Initial page
-                payload['before'] = self.before
-            response = requests.post(url, payload)
-            response.raise_for_status()
-            data = response.json()
-            assert data['error_code'] is None, \
-                'Conduit error: {} - {}'.format(
-                    data['error_code'],
-                    data['error_info'],
-                )
-
-            # Pass results
-            diffs = data['result']['data']
+        cursor = self.latest_id
+        while cursor is not None:
+            diffs, cursor = self.request_phabricator(order='oldest')
             for diff in diffs:
                 yield diff
+                diff_id = diff['id']
 
-            # Save first id for future executions
-            if after is None and diffs:
-                self.before = diffs[0]['id']
-
-            # Load next page
-            after = data['result']['cursor']['after']
-            if after is None:
-                break
+            # Update the latest id
+            self.latest_id = cursor or diff_id
 
     async def build_consumer(self, *args, **kwargs):
         '''
@@ -81,7 +85,7 @@ class HookPhabricator(Hook):
 
             # Get new differential ids
             for diff in self.list_differential():
-                if diff['type'] != 'DREV':
+                if diff['type'] != 'DIFF':
                     logger.info('Skipping differential', id=diff['id'], type=diff['type'])
                     continue
 
@@ -252,23 +256,31 @@ class HookCodeCoverage(PulseHook):
 
             return None
 
-        list_url = 'https://queue.taskcluster.net/v1/task-group/' + group_id + '/list'
+        list_url = 'https://queue.taskcluster.net/v1/task-group/{}/list'.format(group_id)
 
-        r = requests.get(list_url, params={
-            'limit': 200
-        })
-        reply = r.json()
-        task = maybe_trigger(reply['tasks'])
-
-        while task is None and 'continuationToken' in reply:
+        def retrieve_coverage_task():
             r = requests.get(list_url, params={
-                'limit': 200,
-                'continuationToken': reply['continuationToken']
+                'limit': 200
             })
+            r.raise_for_status()
             reply = r.json()
             task = maybe_trigger(reply['tasks'])
 
-        return task
+            while task is None and 'continuationToken' in reply:
+                r = requests.get(list_url, params={
+                    'limit': 200,
+                    'continuationToken': reply['continuationToken']
+                })
+                r.raise_for_status()
+                reply = r.json()
+                task = maybe_trigger(reply['tasks'])
+
+            return task
+
+        try:
+            return retry(retrieve_coverage_task)
+        except Exception:
+            return None
 
     def parse(self, body):
         '''
@@ -355,6 +367,6 @@ class PulseListener(object):
         }
         hook_class = classes.get(conf['type'])
         if hook_class is None:
-            raise Exception('Unsupported hook {}'.format(conf['hook']))
+            raise Exception('Unsupported hook {}'.format(conf['type']))
 
         return hook_class(conf)

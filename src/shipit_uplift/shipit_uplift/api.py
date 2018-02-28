@@ -23,7 +23,7 @@ from shipit_uplift.config import SCOPES_USER, SCOPES_BOT, SCOPES_ADMIN
 from shipit_uplift import (
     coverage_by_dir_impl, coverage_for_file_impl,
     coverage_by_changeset_impl, coverage_summary_by_changeset_impl,
-    coverage_chunks_for_patch_impl, coverage
+    coverage
 )
 from rq import Queue
 from shipit_uplift.worker import conn
@@ -112,7 +112,7 @@ def update_bug(bugzilla_id):
     # Load bug
     try:
         bug = BugResult.query.filter_by(bugzilla_id=bugzilla_id).one()
-    except:
+    except NoResultFound:
         raise Exception('Missing bug {}'.format(bugzilla_id))
 
     # Browse changes
@@ -247,7 +247,7 @@ def create_bug():
         # Get or create user in db
         try:
             contrib = Contributor.query.filter_by(bugzilla_id=user['id']).one()
-        except:
+        except NoResultFound:
             contrib = Contributor(bugzilla_id=user['id'])
             contrib.name = user.get('real_name', user['name'])
             contrib.email = user['email']
@@ -388,7 +388,13 @@ def coverage_by_dir(path=''):
 
 
 def coverage_for_file(changeset, path):
-    return coverage_for_file_impl.generate(changeset, path)
+    changeset = changeset[:12]
+    try:
+        return coverage_for_file_impl.generate(changeset, path)
+    except Exception as e:
+        return {
+            'error': str(e)
+        }, 500
 
 
 def coverage_by_changeset(changeset):
@@ -404,7 +410,7 @@ def coverage_by_changeset(changeset):
 
     if job.exc_info is not None:
         return {
-          'error': str(job.exc_info)
+            'error': str(job.exc_info)
         }, 500
 
     return '', 202
@@ -420,7 +426,3 @@ def coverage_summary_by_changeset(changeset):
 
 def coverage_supported_extensions():
     return coverage.COVERAGE_EXTENSIONS
-
-
-def coverage_chunks_for_patch(patch):
-    return coverage_chunks_for_patch_impl.generate(patch)

@@ -3,7 +3,9 @@ import gzip
 import requests
 
 from cli_common.log import get_logger
-from shipit_code_coverage import utils
+from cli_common import utils
+
+from shipit_code_coverage.secrets import secrets
 
 
 logger = get_logger(__name__)
@@ -25,12 +27,12 @@ def coveralls(data):
     return result['url'] + '.json'
 
 
-def codecov(data, commit_sha, token, flags=None):
+def codecov(data, commit_sha, flags=None):
     logger.info('Upload report to Codecov')
 
     params = {
         'commit': commit_sha,
-        'token': token,
+        'token': secrets[secrets.CODECOV_TOKEN],
         'service': 'custom',
     }
 
@@ -60,9 +62,15 @@ def codecov(data, commit_sha, token, flags=None):
         raise Exception('Failure to upload data to S3. Response [%s]: %s' % (r.status_code, r.text))
 
 
+def get_latest_codecov():
+    r = requests.get('https://codecov.io/api/gh/marco-c/gecko-dev?access_token={}'.format(secrets[secrets.CODECOV_ACCESS_TOKEN]))
+    r.raise_for_status()
+    return r.json()['commit']['commitid']
+
+
 def codecov_wait(commit):
     def check_codecov_job():
-        r = requests.get('https://codecov.io/api/gh/marco-c/gecko-dev/commit/%s' % commit)
+        r = requests.get('https://codecov.io/api/gh/marco-c/gecko-dev/commit/{}?access_token={}'.format(commit, secrets[secrets.CODECOV_ACCESS_TOKEN]))
         return True if r.json()['commit']['totals'] is not None else False
 
     return utils.wait_until(check_codecov_job, 30) is not None

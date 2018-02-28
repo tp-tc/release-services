@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from shipit_static_analysis import Issue, stats
+from shipit_static_analysis.revisions import Revision
 from cli_common.command import run
 from cli_common.log import get_logger
 import itertools
@@ -14,7 +15,6 @@ ISSUE_MARKDOWN = '''
 - **Path**: {path}
 - **Level**: {level}
 - **Line**: {line}
-- **In patch**: {in_patch}
 - **Third Party**: {third_party}
 - **Disabled rule**: {disabled_rule}
 - **Publishable**: {publishable}
@@ -26,7 +26,7 @@ ISSUE_MARKDOWN = '''
 
 
 class MozLintIssue(Issue):
-    def __init__(self, repo_dir, repo_path, modified_lines, column, level, lineno, linter, message, rule, **kwargs):
+    def __init__(self, repo_dir, repo_path, column, level, lineno, linter, message, rule, **kwargs):
         self.nb_lines = 1
         self.repo_dir = repo_dir
         self.path = repo_path
@@ -36,7 +36,6 @@ class MozLintIssue(Issue):
         self.linter = linter
         self.message = message
         self.rule = rule
-        self.in_patch = self.line in modified_lines
 
     def __str__(self):
         return '{} issue {} {} line {}'.format(
@@ -61,11 +60,10 @@ class MozLintIssue(Issue):
     def is_publishable(self):
         '''
         Publishable when:
-        * line is modified by dev.
         * file is not 3rd party
         * rule is not disabled
         '''
-        return self.in_patch and not self.is_third_party() and not self.is_disabled_rule()
+        return not self.is_third_party() and not self.is_disabled_rule()
 
     def as_text(self):
         '''
@@ -89,7 +87,6 @@ class MozLintIssue(Issue):
             line=self.line,
             message=self.message,
             third_party=self.is_third_party() and 'yes' or 'no',
-            in_patch=self.in_patch and 'yes' or 'no',
             publishable=self.is_publishable() and 'yes' or 'no',
             disabled_rule=self.is_disabled_rule() and 'yes' or 'no',
         )
@@ -108,20 +105,22 @@ class MozLint(object):
             'Missing SHELL environment variable'
 
     @stats.api.timed('runtime.mozlint')
-    def run(self, files):
+    def run(self, revision):
         '''
         List all issues found by mozlint on specified files
         '''
+        assert isinstance(revision, Revision)
+
         issues = list(itertools.chain.from_iterable([
-            self.find_issues(path, lines) or []
-            for path, lines in files.items()
+            self.find_issues(path) or []
+            for path in revision.files
         ]))
 
         stats.report_issues('mozlint', issues)
 
         return issues
 
-    def find_issues(self, path, modified_lines):
+    def find_issues(self, path):
         '''
         Run mozlint through mach, without gecko-env
         '''
@@ -154,6 +153,6 @@ class MozLint(object):
             return
 
         return [
-            MozLintIssue(self.repo_dir, path, modified_lines, **issue)
+            MozLintIssue(self.repo_dir, path, **issue)
             for issue in payload[full_path]
         ]
