@@ -232,9 +232,8 @@ in skipOverrides {
   };
 
   "libmozdata" = self: old: {
-    # Remove useless dependencies
+    # Remove useless dependency
     patchPhase = ''
-      sed -i -e "s|mercurial>=3.9.1; python_version < '3.0'||" requirements.txt
       sed -i -e "s|setuptools>=28.6.1||" requirements.txt
     '';
   };
@@ -265,6 +264,12 @@ in skipOverrides {
       builtins.filter
         (x: (builtins.parseDrvName x.name).name != "${python.__old.python.libPrefix}-${python.__old.python.libPrefix}-pytest")
         old.propagatedBuildInputs;
+  };
+
+  "pytest-asyncio" = self: old: {
+    patchPhase = ''
+      sed -i -e "s|pytest >= 3.0.6|pytest|" setup.py
+    '';
   };
 
   "taskcluster" = self: old: {

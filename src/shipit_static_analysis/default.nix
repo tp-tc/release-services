@@ -3,7 +3,7 @@
 
 let
 
-  inherit (releng_pkgs.lib) mkTaskclusterHook mkPython fromRequirementsFile filterSource ;
+  inherit (releng_pkgs.lib) mkTaskclusterHook mkTaskclusterMergeEnv mkPython fromRequirementsFile filterSource ;
   inherit (releng_pkgs.pkgs) writeScript gcc cacert gcc-unwrapped glibc glibcLocales xorg patch nodejs git python27 python35 coreutils shellcheck;
   inherit (releng_pkgs.pkgs.lib) fileContents concatStringsSep ;
   inherit (releng_pkgs.tools) pypi2nix mercurial;
@@ -12,6 +12,13 @@ let
   moz_clang = import ./mozilla_clang.nix { inherit releng_pkgs ; };
   name = "mozilla-shipit-static-analysis";
   dirname = "shipit_static_analysis";
+
+  # Customize gecko environment with Nodejs & Python 3 for linters
+  gecko-env = releng_pkgs.gecko-env.overrideDerivation(old : {
+    buildPhase = old.buildPhase + ''
+      echo "export PATH=${nodejs}/bin:${python35}/bin:\$PATH" >> $out/bin/gecko-env
+    '';
+ } );
 
   mkBot = branch:
     let
@@ -34,10 +41,12 @@ let
         cache = {
           "${cacheKey}" = "/cache";
         };
-        taskEnv = {
-          "SSL_CERT_FILE" = "${cacert}/etc/ssl/certs/ca-bundle.crt";
-          "APP_CHANNEL" = branch;
-          "MOZ_AUTOMATION" = "1";
+        taskEnv = mkTaskclusterMergeEnv {
+          env = {
+            "SSL_CERT_FILE" = "${cacert}/etc/ssl/certs/ca-bundle.crt";
+            "APP_CHANNEL" = branch;
+            "MOZ_AUTOMATION" = "1";
+          };
         };
         taskCommand = [
           "/bin/shipit-static-analysis"
@@ -72,7 +81,7 @@ let
     version = fileContents ./VERSION;
     src = filterSource ./. { inherit name; };
     buildInputs =
-      fromRequirementsFile ./requirements-dev.txt python.packages;
+      [ mercurial ] ++ fromRequirementsFile ./requirements-dev.txt python.packages;
     propagatedBuildInputs =
       fromRequirementsFile ./requirements.txt python.packages
       ++ [
@@ -87,7 +96,7 @@ let
         nodejs
 
         # Gecko environment
-        releng_pkgs.gecko-env
+        gecko-env
       ];
 
     postInstall = ''
@@ -113,7 +122,7 @@ let
       ln -s ${coreutils}/bin/as $out/bin
 
       # Expose gecko env in final output
-      ln -s ${releng_pkgs.gecko-env}/bin/gecko-env $out/bin
+      ln -s ${gecko-env}/bin/gecko-env $out/bin
     '';
 
     shellHook = ''
@@ -123,17 +132,23 @@ let
       export MOZ_AUTOMATION=1
 
       # Use clang mozconfig from gecko-env
-      export MOZCONFIG=${releng_pkgs.gecko-env}/conf/mozconfig
+      export MOZCONFIG=${gecko-env}/conf/mozconfig
 
       # Extras for clang-tidy
       export CPLUS_INCLUDE_PATH=${includes}
       export C_INCLUDE_PATH=${includes}
+
+      # Export linters tools
+      export CODESPELL=${python.packages.codespell}/bin/codespell
+      export SHELLCHECK=${shellcheck}/bin/shellcheck
     '';
 
     dockerEnv =
       [ "CPLUS_INCLUDE_PATH=${includes}"
         "C_INCLUDE_PATH=${includes}"
-        "MOZCONFIG=${releng_pkgs.gecko-env}/conf/mozconfig"
+        "MOZCONFIG=${gecko-env}/conf/mozconfig"
+        "CODESPELL=${python.packages.codespell}/bin/codespell"
+        "SHELLCHECK=${shellcheck}/bin/shellcheck"
         "SHELL=xterm"
       ];
     dockerCmd = [];
