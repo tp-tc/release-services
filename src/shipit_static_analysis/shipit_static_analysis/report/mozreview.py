@@ -84,7 +84,6 @@ class MozReviewReporter(Reporter):
         issues = list(filter(mozreview_publish, issues))
 
         if issues:
-            stats.api.increment('report.mozreview.issues', len(issues))
 
             # Build complex top comment
             comment = self.build_comment(
@@ -95,13 +94,18 @@ class MozReviewReporter(Reporter):
 
             # Comment each issue
             for issue in issues:
-                logger.info('Will publish about {}'.format(issue))
+                logger.info('Should publish about {}'.format(issue))
                 review.comment(
                     issue.path,
                     issue.line,
                     issue.nb_lines,
                     issue.as_text(),
                 )
+
+            # Check some comments need to be posted
+            if not review.comments:
+                logger.info('No new comments found, skipping MozReview publication')
+                return
 
         elif self.publish_success:
             comment = COMMENT_SUCCESS
@@ -113,6 +117,7 @@ class MozReviewReporter(Reporter):
 
         # Publish the review
         # without ship_it to avoid automatically r+
+        stats.api.increment('report.mozreview.issues', len(review.comments))
         stats.api.increment('report.mozreview')
         return review.publish(
             body_top=comment,
@@ -153,6 +158,59 @@ class MozReview(object):
         self._destfile_to_file = {}
         self._file_to_diffdata = {}
 
+        # Load current user id
+        try:
+            self.user = self.api_root.get_session().get_user()
+        except Exception as e:
+            logger.error('Failed to retrieve current MozReview session user')
+            raise
+
+        # Load all existing issues
+        self.existing_comments = self.list_comments()
+        logger.info('Found {} existing comments on review'.format(len(self.existing_comments)))
+
+    def list_comments(self):
+        '''
+        List all existing comments on current Review
+        '''
+        issues = []
+        cache = {}
+
+        def from_cache(comment, name, loader):
+            # Cache Mozreview comments related resources (users & filediff)
+            # to avoid too many slow requests
+            link = comment._payload['links'][name]['href']
+            value = cache.get(link)
+            if not value:
+                # Populate cache
+                value = cache[link] = loader()
+                logger.debug('Loaded mozreview extra data', comment=comment['id'], link=link)
+            return value
+
+        reviews = self.api_root.get_reviews(review_request_id=self.review_request_id)
+        for review in reviews:
+            for comment in review.get_diff_comments():
+
+                # Check we posted this comment
+                user = from_cache(comment, 'user', comment.get_user)
+                if user['id'] != self.user['id']:
+                    logger.debug('Skip other user comment', comment_id=comment['id'], user=user['id'])
+                    continue
+
+                # Load filediff to build full payload
+                filediff = from_cache(comment, 'filediff', comment.get_filediff)
+
+                # Build issue payload structure
+                issues.append({
+                    'filediff_id': filediff['id'],
+                    'first_line': comment._payload['first_line'],
+                    'num_lines': comment._payload['num_lines'],
+                    'text': comment._payload['text'],
+                    'issue_opened': comment._payload['issue_opened'],
+                })
+
+        return issues
+
     def destfile_to_file(self, destfile):
         '''Map a path to a file object'''
         if not self._destfile_to_file:
@@ -178,6 +236,8 @@ class MozReview(object):
 
         TODO: Convert to a faster search algorithm.
         '''
+        assert isinstance(line_num, int), \
+            'Line number must be an integer'
         f = self.destfile_to_file(filename)
         diff_data = self._file_to_diffdata.setdefault(f, f.get_diff_data())
 
@@ -189,6 +249,9 @@ class MozReview(object):
             for row in chunk.lines:
                 if row[line_num_index] == line_num:
                     return row[0]
+
+        # MozReview needs a line number to allow comment publication
+        raise Exception('No translated line number found: {} #{}'.format(filename, line_num))
 
     def comment(self, filename, first_line, num_lines, text,
                 issue_opened=True):
@@ -202,14 +265,20 @@ class MozReview(object):
             return
         translated_line_num = self.translate_line_num(filename, first_line)
 
-        data = {
+        comment = {
             'filediff_id': f.id,
             'first_line': translated_line_num,
             'num_lines': num_lines,
             'text': text,
             'issue_opened': issue_opened,
         }
-        self.comments.append(data)
+
+        # Check this issue is not already published
+        if comment in self.existing_comments:
+            logger.info('Skipping existing comment', text=text, filename=filename, line=first_line)
+            return
+
+        self.comments.append(comment)
 
     def publish(self, body_top='', body_bottom='', ship_it=False):
         '''Publish the review to Reviewboard.'''

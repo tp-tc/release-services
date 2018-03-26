@@ -25,6 +25,7 @@ import json
 import hmac
 import base64
 import os
+import tempfile
 
 logger = cli_common.log.get_logger(__name__)
 auth0 = flask_oidc.OpenIDConnect()
@@ -53,8 +54,8 @@ def mozilla_accept_token(render_errors=True):
         unmodified for later rendering.
     :type render_errors: bool
 
-    Side effects: flask.g gets the 'userinfo' attribute containing the data
-    from the response
+    Side effects: flask.g gets the 'userinfo' and 'access_token' attributes
+    containing the data from the response
 
     .. versionadded:: 1.0
     '''
@@ -71,12 +72,12 @@ def mozilla_accept_token(render_errors=True):
                 token = flask.request.args['access_token']
 
             url = auth0.client_secrets.get(
-                'userinfo_uri', 'https://auth.mozilla.auth0.com/userinfo')
+                'userinfo_uri', 'https://{}/userinfo'.format(flask.current_app.config.get('AUTH_DOMAIN')))
             payload = {'access_token': token}
             response = requests.get(url, params=payload)
 
             # Because auth0 returns http 200 even if the token is invalid.
-            if response.content == b'Unauthorized':
+            if response.content == b'Unauthorized' or not response.ok:
                 response_body = {'error': 'invalid_token',
                                  'error_description': str(response.content, 'utf-8')}
                 if render_errors:
@@ -189,3 +190,23 @@ def init_app(app):
             raise Exception('When using `auth0` extention you need to specify {}.'.format(setting))  # noqa
     auth0.init_app(app)
     return auth0
+
+
+def create_auth0_secrets_file(AUTH_CLIENT_ID, AUTH_CLIENT_SECRET, APP_URL,
+                              USERINFO_URI='https://auth.mozilla.auth0.com/userinfo'):
+    secrets_file = tempfile.mkstemp()[1]
+    with open(secrets_file, 'w+') as f:
+        f.write(json.dumps({
+            'web': {
+                'auth_uri': 'https://auth.mozilla.auth0.com/authorize',
+                'issuer': 'https://auth.mozilla.auth0.com/',
+                'client_id': AUTH_CLIENT_ID,
+                'client_secret': AUTH_CLIENT_SECRET,
+                'redirect_uris': [
+                    APP_URL + '/oidc_callback',
+                ],
+                'token_uri': 'https://auth.mozilla.auth0.com/oauth/token',
+                'userinfo_uri': USERINFO_URI,
+            }
+        }))
+    return secrets_file

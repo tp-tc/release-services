@@ -21,8 +21,7 @@ from shipit_uplift.serializers import (
 )
 from shipit_uplift.config import SCOPES_USER, SCOPES_BOT, SCOPES_ADMIN
 from shipit_uplift import (
-    coverage_by_dir_impl, coverage_for_file_impl,
-    coverage_by_changeset_impl, coverage_summary_by_changeset_impl,
+    coverage_for_file_impl, coverage_by_changeset_impl, coverage_summary_by_changeset_impl,
     coverage
 )
 from rq import Queue
@@ -383,10 +382,6 @@ def create_patch_status(bugzilla_id):
     return serialize_patch_status(ps)
 
 
-def coverage_by_dir(path=''):
-    return coverage_by_dir_impl.generate(path)
-
-
 def coverage_for_file(changeset, path):
     changeset = changeset[:12]
     try:
@@ -403,7 +398,8 @@ def coverage_by_changeset(changeset):
     job = q.fetch_job(changeset)
 
     if job is None:
-        job = q.enqueue(coverage_by_changeset_impl.generate, changeset, job_id=changeset, result_ttl=86400)
+        RESULT_TTL = 2 * 24 * 60 * 60
+        job = q.enqueue(coverage_by_changeset_impl.generate, changeset, job_id=changeset, result_ttl=RESULT_TTL)
 
     if job.result is not None:
         return job.result, 200
