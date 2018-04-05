@@ -9,7 +9,7 @@ import os
 import shutil
 import tempfile
 
-import awscli
+import awscli.clidriver
 import click
 import click_spinner
 import push.image
@@ -40,8 +40,10 @@ log = cli_common.log.get_logger(__name__)
     type=str,
     )
 @click.option(
-    '--extra-attribute',
-    multiple=True,
+    '--channel',
+    type=click.Choice(please_cli.config.CHANNELS),
+    envvar="GITHUB_BRANCH",
+    required=True,
     )
 @click.option(
     '--csp',
@@ -62,10 +64,10 @@ log = cli_common.log.get_logger(__name__)
     help='`nix-build` command',
     )
 @click.option(
-    '--nix-push',
+    '--nix',
     required=True,
-    default=please_cli.config.NIX_BIN_DIR + 'nix-push',
-    help='`nix-push` command',
+    default=please_cli.config.NIX_BIN_DIR + 'nix',
+    help='`nix` command',
     )
 @click.option(
     '--interactive/--no-interactive',
@@ -75,11 +77,11 @@ log = cli_common.log.get_logger(__name__)
 def cmd_S3(ctx,
            project,
            s3_bucket,
-           extra_attribute,
+           channel,
            csp,
            env,
            nix_build,
-           nix_push,
+           nix,
            taskcluster_secret,
            taskcluster_client_id,
            taskcluster_access_token,
@@ -105,9 +107,9 @@ def cmd_S3(ctx,
     # 1. build project (TODO: but only pull from cache)
     ctx.invoke(please_cli.build.cmd,
                project=project,
-               extra_attribute=extra_attribute,
+               channel=channel,
                nix_build=nix_build,
-               nix_push=nix_push,
+               nix=nix,
                taskcluster_secret=taskcluster_secret,
                taskcluster_client_id=taskcluster_client_id,
                taskcluster_access_token=taskcluster_access_token,
@@ -115,7 +117,7 @@ def cmd_S3(ctx,
                )
     project_path = os.path.realpath(os.path.join(
         please_cli.config.TMP_DIR,
-        'result-build-{}-1'.format(project),
+        'result-build-{}-channel-{}'.format(project, channel),
     ))
 
     # 2. create temporary copy of project
@@ -212,8 +214,10 @@ def cmd_S3(ctx,
     default='web'
     )
 @click.option(
-    '--extra-attribute',
-    multiple=True,
+    '--channel',
+    type=click.Choice(please_cli.config.CHANNELS),
+    envvar="GITHUB_BRANCH",
+    required=True,
     )
 @click.option(
     '--nix-build',
@@ -222,10 +226,10 @@ def cmd_S3(ctx,
     help='`nix-build` command',
     )
 @click.option(
-    '--nix-push',
+    '--nix',
     required=True,
-    default=please_cli.config.NIX_BIN_DIR + 'nix-push',
-    help='`nix-push` command',
+    default=please_cli.config.NIX_BIN_DIR + 'nix',
+    help='`nix` command',
     )
 @click.option(
     '--interactive/--no-interactive',
@@ -238,9 +242,9 @@ def cmd_HEROKU(ctx,
                heroku_username,
                heroku_api_token,
                heroku_dyno_type,
-               extra_attribute,
+               channel,
                nix_build,
-               nix_push,
+               nix,
                taskcluster_secret,
                taskcluster_client_id,
                taskcluster_access_token,
@@ -264,9 +268,9 @@ def cmd_HEROKU(ctx,
 
     ctx.invoke(please_cli.build.cmd,
                project=project,
-               extra_attribute=extra_attribute,
+               channel=channel,
                nix_build=nix_build,
-               nix_push=nix_push,
+               nix=nix,
                taskcluster_secret=taskcluster_secret,
                taskcluster_client_id=taskcluster_client_id,
                taskcluster_access_token=taskcluster_access_token,
@@ -275,7 +279,7 @@ def cmd_HEROKU(ctx,
 
     project_path = os.path.realpath(os.path.join(
         please_cli.config.TMP_DIR,
-        'result-build-{}-1'.format(project),
+        'result-build-{}-channel-{}'.format(project, channel),
     ))
 
     click.echo(' => Pushing {} to heroku ... '.format(project), nl=False)
@@ -303,8 +307,10 @@ def cmd_HEROKU(ctx,
     type=click.Choice(please_cli.config.PROJECTS),
     )
 @click.option(
-    '--extra-attribute',
-    multiple=True,
+    '--channel',
+    type=click.Choice(please_cli.config.CHANNELS),
+    envvar="GITHUB_BRANCH",
+    required=True,
     )
 @click.option(
     '--hook-id',
@@ -322,10 +328,10 @@ def cmd_HEROKU(ctx,
     help='`nix-build` command',
     )
 @click.option(
-    '--nix-push',
+    '--nix',
     required=True,
-    default=please_cli.config.NIX_BIN_DIR + 'nix-push',
-    help='`nix-push` command',
+    default=please_cli.config.NIX_BIN_DIR + 'nix',
+    help='`nix` command',
     )
 @click.option(
     '--docker-repo',
@@ -340,11 +346,11 @@ def cmd_HEROKU(ctx,
 @click.pass_context
 def cmd_TASKCLUSTER_HOOK(ctx,
                          project,
-                         extra_attribute,
+                         channel,
                          hook_id,
                          hook_group_id,
                          nix_build,
-                         nix_push,
+                         nix,
                          taskcluster_secret,
                          taskcluster_client_id,
                          taskcluster_access_token,
@@ -391,9 +397,9 @@ def cmd_TASKCLUSTER_HOOK(ctx,
 
     ctx.invoke(please_cli.build.cmd,
                project=project,
-               extra_attribute=extra_attribute,
+               channel=channel,
                nix_build=nix_build,
-               nix_push=nix_push,
+               nix=nix,
                taskcluster_secret=taskcluster_secret,
                taskcluster_client_id=taskcluster_client_id,
                taskcluster_access_token=taskcluster_access_token,
@@ -401,7 +407,7 @@ def cmd_TASKCLUSTER_HOOK(ctx,
                )
     project_path = os.path.realpath(os.path.join(
         please_cli.config.TMP_DIR,
-        'result-build-{}-1'.format(project),
+        'result-build-{}-channel-{}'.format(project, channel),
     ))
 
     with open(project_path) as f:

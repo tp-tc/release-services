@@ -6,8 +6,8 @@ from __future__ import absolute_import
 
 import os
 import subprocess
+import tempfile
 
-import awscli.clidriver
 import click
 import click_spinner
 
@@ -28,8 +28,10 @@ import please_cli.utils
     type=click.Choice(please_cli.config.PROJECTS),
     )
 @click.option(
-    '--extra-attribute',
-    multiple=True,
+    '--channel',
+    type=click.Choice(please_cli.config.CHANNELS),
+    required=False,
+    default=None,
     )
 @click.option(
     '--nix-build',
@@ -38,10 +40,10 @@ import please_cli.utils
     help='`nix-build` command',
     )
 @click.option(
-    '--nix-push',
+    '--nix',
     required=True,
-    default=please_cli.config.NIX_BIN_DIR + 'nix-push',
-    help='`nix-push` command',
+    default=please_cli.config.NIX_BIN_DIR + 'nix',
+    help='`nix` command',
     )
 @click.option(
     '--cache-bucket',
@@ -49,42 +51,86 @@ import please_cli.utils
     default=None,
     )
 @click.option(
+    '--cache-region',
+    required=False,
+    default=None,
+    )
+@click.option(
+    '--taskcluster-client-id',
+    default=None,
+    required=False,
+    )
+@click.option(
+    '--taskcluster-access-token',
+    default=None,
+    required=False,
+    )
+@click.option(
     '--interactive/--no-interactive',
     default=True,
     )
 def cmd(project,
-        extra_attribute,
+        channel,
         nix_build,
-        nix_push,
+        nix,
         cache_bucket,
+        cache_region,
         taskcluster_secret,
         taskcluster_client_id,
         taskcluster_access_token,
         interactive,
         ):
 
-    if cache_bucket:
-        secrets = cli_common.taskcluster.get_secrets(
-            taskcluster_secret,
-            project,
-            required=(
-                'CACHE_ACCESS_KEY_ID',
-                'CACHE_SECRET_ACCESS_KEY',
-            ),
-        )
+    required_secrets = [
+        'NIX_CACHE_SECRET_KEYS',
+    ]
 
-        AWS_ACCESS_KEY_ID = secrets['CACHE_ACCESS_KEY_ID']
-        AWS_SECRET_ACCESS_KEY = secrets['CACHE_SECRET_ACCESS_KEY']
+    if cache_bucket and cache_region:
+        required_secrets += [
+            'CACHE_ACCESS_KEY_ID',
+            'CACHE_SECRET_ACCESS_KEY',
+        ]
+
+    secrets = cli_common.taskcluster.get_secrets(taskcluster_secret,
+                                                 project,
+                                                 required=required_secrets,
+                                                 taskcluster_client_id=taskcluster_client_id,
+                                                 taskcluster_access_token=taskcluster_access_token,
+                                                 )
 
     click.echo(' => Building {} project ... '.format(project), nl=False)
     with click_spinner.spinner():
-        for index, attribute in enumerate([project] + list(extra_attribute)):
+        temp_files =  []
+        nix_cache_secret_keys = []
+        for secret_key in secrets['NIX_CACHE_SECRET_KEYS']:
+            fd, temp_file = tempfile.mkstemp(text=True)
+            with open(temp_file, 'w') as f:
+                f.write(secret_key)
+            os.close(fd)
+            nix_cache_secret_keys += [
+                '--option',
+                'secret-key-files',
+                temp_file,
+            ]
+
+        projects = [(project, None)] + \
+                   [(project + '.deploy.' + x, x) for x in please_cli.config.DEPLOY_CHANNELS]
+        if channel:
+            projects = [(project + '.deploy.' + channel, channel)]
+
+        for (attribute, channel_) in projects:
+            channel_attribute = ''
+            if channel_:
+                channel_attribute = '-channel-' + channel_
             command = [
                 nix_build,
                 please_cli.config.ROOT_DIR + '/nix/default.nix',
                 '-A', attribute,
-                '-o', please_cli.config.TMP_DIR + '/result-build-{project}-{index}'.format(project=project, index=index),
-            ]
+                '-o', please_cli.config.TMP_DIR + '/result-build-{project}{channel}'.format(
+                    project=project,
+                    channel=channel_attribute,
+                ),
+            ] + nix_cache_secret_keys
             result, output, error = cli_common.command.run(
                 command,
                 stream=True,
@@ -93,13 +139,17 @@ def cmd(project,
             )
             if result != 0:
                 break
+
+        for temp_file in temp_files:
+            os.remove(temp_file)
+
     please_cli.utils.check_result(
         result,
         output,
         ask_for_details=interactive,
     )
 
-    if cache_bucket:
+    if cache_bucket and cache_region:
         tmp_cache_dir = os.path.join(please_cli.config.TMP_DIR, 'cache')
         if not os.path.exists(tmp_cache_dir):
             os.makedirs(tmp_cache_dir)
@@ -110,10 +160,12 @@ def cmd(project,
             if item.startswith('result-build-' + project)
         ]
 
+        os.environ['AWS_ACCESS_KEY_ID'] = secrets['CACHE_ACCESS_KEY_ID']
+        os.environ['AWS_SECRET_ACCESS_KEY'] = secrets['CACHE_SECRET_ACCESS_KEY']
         command = [
-            nix_push,
-            '--dest', tmp_cache_dir,
-            '--force',
+            nix, 'copy',
+            '--to', 's3://{}?region={}'.format(cache_bucket, cache_region),
+            '-vvvv',
         ] + build_results
         click.echo(' => Creating cache artifacts for {} project... '.format(project), nl=False)
         with click_spinner.spinner():
@@ -127,22 +179,6 @@ def cmd(project,
             output,
             ask_for_details=interactive,
         )
-
-        os.environ['AWS_ACCESS_KEY_ID'] = AWS_ACCESS_KEY_ID
-        os.environ['AWS_SECRET_ACCESS_KEY'] = AWS_SECRET_ACCESS_KEY
-        aws = awscli.clidriver.create_clidriver().main
-        click.echo(' => Pushing cache artifacts of {} to S3 ... '.format(project), nl=False)
-        with click_spinner.spinner():
-            result = aws([
-                's3',
-                'sync',
-                '--quiet',
-                '--size-only',
-                '--acl', 'public-read',
-                tmp_cache_dir,
-                's3://' + cache_bucket,
-            ])
-        please_cli.utils.check_result(result, output)
 
 
 @click.command(
