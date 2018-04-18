@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
-from shipit_static_analysis import Issue, stats
-from shipit_static_analysis.revisions import Revision
-from cli_common.command import run
-from cli_common.log import get_logger
 import itertools
 import json
 import os
+
+from cli_common.command import run
+from cli_common.log import get_logger
+from shipit_static_analysis import Issue
+from shipit_static_analysis import stats
+from shipit_static_analysis.config import settings
+from shipit_static_analysis.revisions import Revision
 
 logger = get_logger(__name__)
 
@@ -26,10 +29,9 @@ ISSUE_MARKDOWN = '''
 
 
 class MozLintIssue(Issue):
-    def __init__(self, repo_dir, repo_path, column, level, lineno, linter, message, rule, **kwargs):
+    def __init__(self, path, column, level, lineno, linter, message, rule, **kwargs):
         self.nb_lines = 1
-        self.repo_dir = repo_dir
-        self.path = repo_path
+        self.path = path
         self.column = column
         self.level = level
         self.line = int(lineno)  # mozlint sometimes produce strings here
@@ -91,13 +93,17 @@ class MozLintIssue(Issue):
             disabled_rule=self.is_disabled_rule() and 'yes' or 'no',
         )
 
+    def as_diff(self):
+        '''
+        No diff available
+        '''
+
 
 class MozLint(object):
     '''
     Exposes mach lint capabilities
     '''
-    def __init__(self, repo_dir):
-        self.repo_dir = repo_dir
+    def __init__(self):
 
         # Check we have a Shell set in env
         # This is needed for mach + mozlint execution
@@ -133,7 +139,7 @@ class MozLint(object):
             '--quiet',
             path
         ]
-        returncode, output, error = run(' '.join(command), cwd=self.repo_dir)
+        returncode, output, error = run(' '.join(command), cwd=settings.repo_dir)
         if returncode == 0:
             logger.debug('No Mozlint errors', path=path)
             return
@@ -148,14 +154,14 @@ class MozLint(object):
             logger.warn('Invalid json output', path=path, lines=lines)
             raise
 
-        full_path = os.path.join(self.repo_dir, path)
+        full_path = os.path.join(settings.repo_dir, path)
         if full_path not in payload and path not in payload:
             logger.warn('Missing path in linter output', path=path)
             return
 
         # Mozlint uses both full & relative path to index issues
         return [
-            MozLintIssue(self.repo_dir, path, **issue)
+            MozLintIssue(path, **issue)
             for p in (path, full_path)
             for issue in payload.get(p, [])
         ]

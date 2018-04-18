@@ -2,17 +2,24 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-from __future__ import absolute_import
 
+import datetime
+import functools
 import os
+
 import flask
 import taskcluster
-import functools
-from shipit_workflow.models import Release, Phase
-from cli_common.log import get_logger
-from backend_common.auth0 import mozilla_accept_token, has_scopes, AuthError, requires_auth
 from sqlalchemy.orm.exc import NoResultFound
-import datetime
+from werkzeug.exceptions import BadRequest
+
+from backend_common.auth0 import AuthError
+from backend_common.auth0 import has_scopes
+from backend_common.auth0 import mozilla_accept_token
+from backend_common.auth0 import requires_auth
+from cli_common.log import get_logger
+from shipit_workflow.models import Phase
+from shipit_workflow.models import Release
+from shipit_workflow.tasks import UnsupportedFlavor
 
 log = get_logger(__name__)
 
@@ -52,14 +59,20 @@ def add_release(body):
         branch=body['branch'],
         revision=body['revision'],
         build_number=body['build_number'],
-        release_eta=body['release_eta'],
+        release_eta=body.get('release_eta'),
         status='scheduled',
         partial_updates=body.get('partial_updates')
     )
-    r.generate_phases()
-    session.add(r)
-    session.commit()
-    return r.json, 201
+    try:
+        r.generate_phases(
+            partner_urls=flask.current_app.config.get('PARTNERS_URL'),
+            github_token=flask.current_app.config.get('GITHUB_TOKEN'),
+        )
+        session.add(r)
+        session.commit()
+        return r.json, 201
+    except UnsupportedFlavor as e:
+        raise BadRequest(description=e.description)
 
 
 def list_releases(full=False):

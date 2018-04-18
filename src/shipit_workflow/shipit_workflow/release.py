@@ -3,7 +3,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
 import re
 
 # If version has two parts with no trailing specifiers like "rc", we
@@ -56,3 +55,19 @@ def bump_version(version):
         v.append('0')
     v[-1] = str(int(v[-1]) + 1)
     return split_by.join(v) + suffix
+
+
+def get_beta_num(version):
+    if is_beta(version):
+        parts = version.split('b')
+        return int(parts[-1])
+
+
+def is_partner_enabled(product, version):
+    if product == 'firefox':
+        if is_beta(version):
+            if get_beta_num(version) >= 8:
+                return True
+        elif not is_esr(version):
+            return True
+    return False

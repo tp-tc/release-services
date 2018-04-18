@@ -3,17 +3,30 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import responses
 import itertools
-import httpretty
-import os.path
-import pytest
-import hglib
-import time
 import json
+import os.path
 import re
+import subprocess
+import tempfile
+import time
+from distutils.spawn import find_executable
+
+import hglib
+import httpretty
+import pytest
+import responses
 
 MOCK_DIR = os.path.join(os.path.dirname(__file__), 'mocks')
+
+TEST_CPP = '''
+include <cstdio>
+
+int main(void){
+    printf("Hello world!");
+    return 0;
+}
+'''
 
 
 @responses.activate
@@ -31,31 +44,36 @@ def mock_config():
     )
 
     from shipit_static_analysis.config import settings
-    settings.setup('test')
+    tempdir = tempfile.mkdtemp()
+    settings.setup('test', tempdir)
+
     return settings
 
 
-@pytest.fixture
-def mock_repository(tmpdir):
+@pytest.fixture(scope='session')
+def mock_repository(mock_config):
     '''
     Create a dummy mercurial repository
     '''
     # Init repo
-    repo_dir = str(tmpdir.mkdir('repo').realpath())
-    hglib.init(repo_dir)
+    hglib.init(mock_config.repo_dir)
 
     # Init clean client
-    client = hglib.open(repo_dir)
-    client.directory = repo_dir
+    client = hglib.open(mock_config.repo_dir)
 
     # Add test.txt file
-    path = os.path.join(repo_dir, 'test.txt')
+    path = os.path.join(mock_config.repo_dir, 'test.txt')
     with open(path, 'w') as f:
         f.write('Hello World\n')
 
     # Initiall commit
     client.add(path.encode('utf-8'))
     client.commit(b'Hello World', user=b'Tester')
+
+    # Write dummy 3rd party file
+    third_party = os.path.join(mock_config.repo_dir, mock_config.third_party)
+    with open(third_party, 'w') as f:
+        f.write('test/dummy')
 
     return client
 
@@ -326,3 +344,71 @@ def mock_revision():
     rev = Revision()
     rev.mercurial = 'a6ce14f59749c3388ffae2459327a323b6179ef0'
     return rev
+
+
+@pytest.fixture
+def mock_clang(tmpdir, monkeypatch):
+    '''
+    Mock clang binary setup by linking the system wide
+    clang tools into the expected repo sub directory
+    '''
+
+    # Create a temp mozbuild path
+    clang_dir = tmpdir.mkdir('clang-tools').mkdir('clang').mkdir('bin')
+    os.environ['MOZBUILD_STATE_PATH'] = str(tmpdir.realpath())
+
+    for tool in ('clang-tidy', 'clang-format'):
+        os.symlink(
+            find_executable(tool),
+            str(clang_dir.join(tool).realpath()),
+        )
+
+    # Monkeypatch the mach static analysis by using directly clang-tidy
+    real_check_output = subprocess.check_output
+
+    def mock_mach(command, *args, **kwargs):
+        if command[:4] == ['gecko-env', './mach', 'static-analysis', 'check']:
+            command = ['clang-tidy', ] + command[4:]
+            clang_output = real_check_output(command, *args, **kwargs).decode('utf-8')
+
+            # Prefix every line with timestamps to match mach style
+            return '\n'.join(
+                ' 0:{:02d}.{:02d} {}'.format(int(i / 100), i % 100, line)
+                for i, line in enumerate(clang_output.split('\n'))
+            ).encode('utf-8')
+
+        # Really run command through normal check_output
+        return real_check_output(command, *args, **kwargs)
+
+    monkeypatch.setattr(subprocess, 'check_output', mock_mach)
+
+
+@pytest.fixture
+def mock_workflow(tmpdir, mock_repository, mock_config):
+    '''
+    Mock the full workflow, without cloning
+    '''
+    from shipit_static_analysis.workflow import Workflow
+
+    class MockWorkflow(Workflow):
+        def clone(self):
+            return hglib.open(mock_config.repo_dir)
+
+    # Needed for Taskcluster build
+    if 'MOZCONFIG' not in os.environ:
+        os.environ['MOZCONFIG'] = str(tmpdir.join('mozconfig').realpath())
+
+    return MockWorkflow(
+        reporters=[],
+        analyzers=['clang-tidy', 'clang-format', 'mozlint'],
+    )
+
+
+@pytest.fixture
+def test_cpp(mock_config, mock_repository):
+    '''
+    Build a dummy test.cpp file in repo
+    '''
+    path = os.path.join(mock_config.repo_dir, 'test.cpp')
+    with open(path, 'w') as f:
+        f.write(TEST_CPP)

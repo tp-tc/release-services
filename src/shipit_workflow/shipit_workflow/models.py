@@ -3,26 +3,25 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
-
-import datetime
-import sqlalchemy as sa
-import sqlalchemy.orm
 import copy
+import datetime
 import json
 from functools import lru_cache
 
+import sqlalchemy as sa
+import sqlalchemy.orm
+
 from backend_common.db import db
 from cli_common.log import get_logger
+from shipit_workflow.partners import get_partner_config_by_url
 from shipit_workflow.release import bump_version
-from shipit_workflow.tasks import (
-    find_decision_task_id,
-    fetch_actions_json,
-    find_action,
-    extract_our_flavors,
-    generate_action_task,
-    render_action_task
-)
+from shipit_workflow.release import is_partner_enabled
+from shipit_workflow.tasks import extract_our_flavors
+from shipit_workflow.tasks import fetch_actions_json
+from shipit_workflow.tasks import find_action
+from shipit_workflow.tasks import find_decision_task_id
+from shipit_workflow.tasks import generate_action_task
+from shipit_workflow.tasks import render_action_task
 
 log = get_logger(__name__)
 
@@ -65,6 +64,7 @@ class Phase(db.Model):
         return {
             'name': self.name,
             'submitted': self.submitted,
+            'actionTaskId': self.task_id,
         }
 
 
@@ -95,7 +95,9 @@ class Release(db.Model):
         self.branch = branch
         self.revision = revision
         self.build_number = build_number
-        self.release_eta = release_eta
+        # Swagger doesn't let passing null values for strings, we use "falsy"
+        # ones instead
+        self.release_eta = release_eta or None
         self.partial_updates = partial_updates
         self.status = status
 
@@ -103,12 +105,12 @@ class Release(db.Model):
     def project(self):
         return self.branch.split('/')[-1]
 
-    def generate_phases(self):
+    def generate_phases(self, partner_urls=None, github_token=None):
         blob = []
         phases = []
         previous_graph_ids = [self.decicion_task_id]
         next_version = bump_version(self.version.replace('esr', ''))
-        action_task_input_common = {
+        input_common = {
             'build_number': self.build_number,
             'next_version': next_version,
             # specify version rather than relying on in-tree version,
@@ -117,17 +119,24 @@ class Release(db.Model):
             'version': self.version,
             'release_eta': self.release_eta
         }
+        if is_partner_enabled(self.product, self.version) and partner_urls and github_token:
+            input_common['release_partner_config'] = {}
+            for kind, url in partner_urls.items():
+                input_common['release_partner_config'][kind] = get_partner_config_by_url(
+                    url, kind, github_token
+                )
+
         if self.partial_updates:
-            action_task_input_common['partial_updates'] = {}
+            input_common['partial_updates'] = {}
             for partial_version, info in self.partial_updates.items():
-                action_task_input_common['partial_updates'][partial_version] = {
+                input_common['partial_updates'][partial_version] = {
                     'buildNumber': info['buildNumber'],
                     'locales': info['locales']
                 }
         for phase in self.release_promotion_flavors():
-            action_task_input = copy.deepcopy(action_task_input_common)
+            action_task_input = copy.deepcopy(input_common)
             action_task_input['previous_graph_ids'] = list(previous_graph_ids)
-            action_task_input['release_promotion_flavor'] = phase
+            action_task_input['release_promotion_flavor'] = phase['name']
             action_task_id, action_task, context = generate_action_task(
                 action_task_input=action_task_input,
                 actions=self.actions,
@@ -137,8 +146,9 @@ class Release(db.Model):
                 'task': action_task,
                 'status': 'pending'
             })
-            previous_graph_ids.append(action_task_id)
-            phases.append(Phase(phase, action_task_id, json.dumps(action_task), json.dumps(context)))
+            if phase['in_previous_graph_ids']:
+                previous_graph_ids.append(action_task_id)
+            phases.append(Phase(phase['name'], action_task_id, json.dumps(action_task), json.dumps(context)))
         self.phases = phases
 
     @property
@@ -167,7 +177,7 @@ class Release(db.Model):
             'version': self.version,
             'revision': self.revision,
             'build_number': self.build_number,
-            'release_eta': self.release_eta,
+            'release_eta': self.release_eta or '',
             'status': self.status,
             'phases': [p.json for p in self.phases],
         }

@@ -5,6 +5,7 @@
 from __future__ import absolute_import
 
 import os
+
 import click
 
 CWD_DIR = os.path.abspath(os.getcwd())
@@ -32,8 +33,6 @@ if ROOT_DIR is None:
 
 CACHE_URLS = [
     'https://cache.mozilla-releng.net',
-    #'https://cache-testing.mozilla-releng.net',
-    'http://releng-cache-testing.s3.amazonaws.com',
 ]
 
 SRC_DIR = os.path.join(ROOT_DIR, 'src')
@@ -44,7 +43,7 @@ DEPLOY_CHANNELS = ['testing', 'staging', 'production']
 
 DOCKER_REGISTRY = "https://index.docker.io"
 DOCKER_REPO = 'mozillareleng/services'
-DOCKER_BASE_TAG = 'base-new-' + VERSION
+DOCKER_BASE_TAG = 'base-' + VERSION
 
 NIX_BIN_DIR = os.environ.get("NIX_BIN_DIR", "")  # must end with /
 OPENSSL_BIN_DIR = os.environ.get("OPENSSL_BIN_DIR", "")  # must end with /
@@ -225,7 +224,7 @@ PROJECTS_CONFIG = {
             'testing': {
                 's3_bucket': 'releng-testing-docs',
                 'url': 'https://docs.testing.mozilla-releng.net',
-                'dns': 'd32jt14rospqzr.cloudfront.net.',
+                'dns': 'd1sw5c8kdn03y.cloudfront.net.',
             },
             'staging': {
                 's3_bucket': 'releng-staging-docs',
@@ -259,7 +258,7 @@ PROJECTS_CONFIG = {
             'testing': {
                 's3_bucket': 'releng-testing-frontend',
                 'url': 'https://testing.mozilla-releng.net',
-                'dns': 'dpwmwa9tge2p3.cloudfront.net.',
+                'dns': 'd1l70lpksx3ik7.cloudfront.net.',
                 'csp': [
                     'https://login.taskcluster.net',
                     'https://auth.taskcluster.net',
@@ -274,17 +273,16 @@ PROJECTS_CONFIG = {
                     'https://auth.taskcluster.net',
                 ],
             },
-            # TODO: remove comment after freeze period
-            # 'production': {
-            #     's3_bucket': 'releng-production-frontend',
-            #     'url': 'https://mozilla-releng.net',
-            #     'dns': 'd1qqwps52z1e12.cloudfront.net.',
-            #     'dns_domain': 'www.mozilla-releng.net',
-            #     'csp': [
-            #         'https://login.taskcluster.net',
-            #         'https://auth.taskcluster.net',
-            #     ],
-            # },
+            'production': {
+                's3_bucket': 'releng-production-frontend',
+                'url': 'https://mozilla-releng.net',
+                'dns': 'd1qqwps52z1e12.cloudfront.net.',
+                'dns_domain': 'www.mozilla-releng.net',
+                'csp': [
+                    'https://login.taskcluster.net',
+                    'https://auth.taskcluster.net',
+                ],
+            },
         },
     },
     'releng-mapper': {
@@ -350,12 +348,13 @@ PROJECTS_CONFIG = {
                 'url': 'https://tooltool.staging.mozilla-releng.net',
                 'dns': 'shizuoka-60622.herokussl.com',
             },
-            'production': {
-                'heroku_app': 'releng-production-tooltool',
-                'heroku_dyno_type': 'web',
-                'url': 'https://tooltool.mozilla-releng.net',
-                'dns': 'kochi-11433.herokussl.com',
-            },
+            # (garbas): commeted out for the period when i'm on parental leave
+            # 'production': {
+            #     'heroku_app': 'releng-production-tooltool',
+            #     'heroku_dyno_type': 'web',
+            #     'url': 'https://tooltool.mozilla-releng.net',
+            #     'dns': 'kochi-11433.herokussl.com',
+            # },
         },
     },
     'releng-treestatus': {
@@ -386,13 +385,14 @@ PROJECTS_CONFIG = {
                 # TODO: we need to change this to SSL Endpoint
                 'dns': 'treestatus.staging.mozilla-releng.net.herokudns.com',
             },
-            'production': {
-                'heroku_app': 'releng-production-treestatus',
-                'heroku_dyno_type': 'web',
-                'url': 'https://treestatus.mozilla-releng.net',
-                # TODO: this needs to be updated in mozilla-releng/build-cloud-tools
-                'dns': 'kochi-31413.herokussl.com',
-            },
+            # (garbas): commeted out for the period when i'm on parental leave
+            # 'production': {
+            #     'heroku_app': 'releng-production-treestatus',
+            #     'heroku_dyno_type': 'web',
+            #     'url': 'https://treestatus.mozilla-releng.net',
+            #     # TODO: this needs to be updated in mozilla-releng/build-cloud-tools
+            #     'dns': 'kochi-31413.herokussl.com',
+            # },
         },
     },
     'shipit-bot-uplift': {
@@ -435,7 +435,7 @@ PROJECTS_CONFIG = {
             'testing': {
                 's3_bucket': 'shipit-testing-frontend',
                 'url': 'https://shipit.testing.mozilla-releng.net',
-                'dns': 'd2ld4e8bl8yd1l.cloudfront.net.',
+                'dns': 'd2jpisuzgldax2.cloudfront.net.',
                 'envs': {
                     'bugzilla-url': 'https://bugzilla.mozilla.org',
                 },

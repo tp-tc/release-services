@@ -2,9 +2,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
+import os
 
 import click
+
 import cli_common.log
 
 
@@ -96,3 +97,23 @@ class ClickCustomGroup(click.Group, ClickCustomCommand):
         if rows:
             with formatter.section('COMMANDS'):
                 formatter.write_dl(rows)
+
+
+def which(program):
+    """Find executable
+    """
+
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    return None
