@@ -3,6 +3,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import asyncio
 import pickle
 
 from flask import abort
@@ -389,11 +390,15 @@ def create_patch_status(bugzilla_id):
 def coverage_for_file(changeset, path):
     changeset = changeset[:12]
     try:
-        return coverage_for_file_impl.generate(changeset, path)
+        return asyncio.get_event_loop().run_until_complete(coverage_for_file_impl.generate(changeset, path))
     except Exception as e:
         return {
             'error': str(e)
         }, 500
+
+
+def coverage_by_changeset_job(changeset):
+    return asyncio.get_event_loop().run_until_complete(coverage_by_changeset_impl.generate(changeset))
 
 
 def coverage_by_changeset(changeset):
@@ -403,7 +408,12 @@ def coverage_by_changeset(changeset):
 
     if job is None:
         RESULT_TTL = 2 * 24 * 60 * 60
-        job = q.enqueue(coverage_by_changeset_impl.generate, changeset, job_id=changeset, result_ttl=RESULT_TTL)
+        job = q.enqueue(
+            coverage_by_changeset_job,
+            changeset,
+            job_id=changeset,
+            result_ttl=RESULT_TTL
+        )
 
     if job.result is not None:
         return job.result, 200
@@ -429,10 +439,4 @@ def coverage_supported_extensions():
 
 
 def coverage_latest():
-    latest_rev, previous_rev = coverage.coverage_service.get_latest_build()
-    latest_pushid = coverage.get_changeset_data(latest_rev)['push']
-    return {
-      'latest_pushid': latest_pushid,
-      'latest_rev': latest_rev,
-      'previous_rev': previous_rev,
-    }
+    return asyncio.get_event_loop().run_until_complete(coverage.get_latest_build_info())

@@ -6,9 +6,10 @@
 from shipit_uplift.coverage import coverage_service
 from shipit_uplift.coverage import coverage_supported
 from shipit_uplift.coverage import get_coverage_build
+from shipit_uplift.coverage import get_github_commit
 
 
-def generate(changeset, path):
+async def generate(changeset, path):
     '''
     This function generates a report containing the coverage information for a given file
     at a given revision.
@@ -18,8 +19,14 @@ def generate(changeset, path):
     if not coverage_supported(path):
         return {}
 
-    _, build_changeset, _ = get_coverage_build(changeset)
+    _, build_changeset, _ = await get_coverage_build(changeset)
 
-    coverage = coverage_service.get_file_coverage(build_changeset, path)
+    coverage = await coverage_service.get_file_coverage(build_changeset, path)
+    if coverage is None:
+        return {}
 
-    return coverage if coverage is not None else {}
+    return {
+        'git_build_changeset': await get_github_commit(changeset),
+        'build_changeset': build_changeset,
+        'data': coverage
+    }
